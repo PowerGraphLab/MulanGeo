@@ -1,8 +1,8 @@
 /*
- * Vertex Buffer — runtime vertex data access and construction
+ * 顶点缓冲 — 运行时顶点数据访问与构建
  *
- * Provides VertexElement (typed view), VertexBufferView (read-only
- * accessor), VertexBufferBuilder (mutable builder), and color packing.
+ * 提供 VertexElement（类型化视图）、VertexBufferView（只读访问器）、
+ * VertexBufferBuilder（可变构建器）及颜色打包工具。
  */
 
 #pragma once
@@ -16,10 +16,10 @@
 namespace MulanGeo::Engine {
 
 // ============================================================
-// Color packing utilities
+// 颜色打包工具
 // ============================================================
 
-// Pack RGBA [0-255] into a single uint32_t
+// 将 RGBA [0-255] 打包为 uint32_t
 constexpr uint32_t packColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) {
     return static_cast<uint32_t>(r)
          | (static_cast<uint32_t>(g) << 8)
@@ -27,7 +27,7 @@ constexpr uint32_t packColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) {
          | (static_cast<uint32_t>(a) << 24);
 }
 
-// Pack RGBA [0.0-1.0] into uint32_t
+// 将 RGBA [0.0-1.0] 打包为 uint32_t
 constexpr uint32_t packColorF(float r, float g, float b, float a = 1.0f) {
     return packColor(
         static_cast<uint8_t>(r * 255.0f),
@@ -38,7 +38,7 @@ constexpr uint32_t packColorF(float r, float g, float b, float a = 1.0f) {
 }
 
 // ============================================================
-// Vertex Element (typed view into a single attribute)
+// 顶点元素（单个属性的类型化视图）
 // ============================================================
 
 template<VertexFormat F>
@@ -46,7 +46,7 @@ struct VertexElement {
     static constexpr VertexFormat format = F;
     static constexpr uint8_t byteSize = vertexFormatSize(F);
 
-    // Storage: raw bytes, properly aligned
+    // 原始字节，4 字节对齐
     alignas(4) std::byte data_[byteSize];
 
     using value_type = typename VertexFormatTraits<F>::type;
@@ -63,7 +63,7 @@ struct VertexElement {
 };
 
 // ============================================================
-// Vertex Buffer View (read-only accessor)
+// 顶点缓冲视图（只读访问器）
 // ============================================================
 
 class VertexBufferView {
@@ -78,7 +78,7 @@ public:
             : 0;
     }
 
-    // Get raw pointer to attribute for vertex index
+    // 获取指定顶点属性的原始指针
     constexpr const std::byte* attributeData(uint32_t vertexIndex,
                                               VertexSemantic sem) const {
         auto* attr = m_layout.find(sem);
@@ -88,7 +88,7 @@ public:
         return m_data.data() + offset;
     }
 
-    // Typed read — returns value by copy
+    // 类型化读取（返回值拷贝）
     template<typename T>
     constexpr T read(uint32_t vertexIndex, VertexSemantic sem) const {
         auto* ptr = attributeData(vertexIndex, sem);
@@ -98,13 +98,13 @@ public:
         return result;
     }
 
-    // Convenience: read float3 position
+    // 快捷：读取 float3 位置
     struct Float3 { float x, y, z; };
     Float3 readPosition(uint32_t idx) const {
         return read<Float3>(idx, VertexSemantic::Position);
     }
 
-    // Convenience: read packed color
+    // 快捷：读取打包颜色
     uint32_t readColor(uint32_t idx) const {
         return read<uint32_t>(idx, VertexSemantic::Color0);
     }
@@ -115,7 +115,7 @@ private:
 };
 
 // ============================================================
-// Vertex Buffer Builder (mutable builder)
+// 顶点缓冲构建器（可变）
 // ============================================================
 
 class VertexBufferBuilder {
@@ -129,7 +129,7 @@ public:
     uint32_t stride() const { return m_layout.stride(); }
     uint32_t capacity() const { return m_maxVertices; }
 
-    // Typed write
+    // 类型化写入
     template<typename T>
     void write(uint32_t vertexIndex, VertexSemantic sem, const T& value) {
         auto* attr = m_layout.find(sem);
@@ -160,7 +160,7 @@ public:
         write(idx, VertexSemantic::PickId, id);
     }
 
-    // Get the built data
+    // 获取已构建的数据
     std::span<const std::byte> data() const {
         return {reinterpret_cast<const std::byte*>(m_buffer.data()), m_buffer.size()};
     }

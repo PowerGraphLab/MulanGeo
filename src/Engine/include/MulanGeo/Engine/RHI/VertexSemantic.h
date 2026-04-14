@@ -1,8 +1,8 @@
 /*
- * Vertex Semantic — what a vertex attribute MEANS
+ * 顶点语义 — 顶点属性的语义槽位定义
  *
- * Defines semantic slots for vertex attributes (position, normal,
- * texcoord, etc.) and their mapping to HLSL/GLSL names.
+ * 定义顶点属性的含义（位置、法线、纹理坐标等）
+ * 及其到 HLSL/GLSL 名称的映射。
  */
 
 #pragma once
@@ -12,34 +12,35 @@
 namespace MulanGeo::Engine {
 
 // ============================================================
-// Vertex Semantic
+// 顶点语义
 // ============================================================
 
 enum class VertexSemantic : uint8_t {
-    Position    = 0,   // float3  - object-space position
-    Normal      = 1,   // float3  - object-space normal
-    Tangent     = 2,   // float4  - tangent + handedness (w)
-    Bitangent   = 3,   // float3
-    Color0      = 4,   // ubyte4n or float4 - primary color / layer color
-    Color1      = 5,   // ubyte4n or float4 - secondary color
-    TexCoord0   = 6,   // float2
-    TexCoord1   = 7,   // float2
-    TexCoord2   = 8,   // float2
-    TexCoord3   = 9,   // float2
-    Indices     = 10,  // uint4   - bone / instance indices
-    Weight      = 11,  // float4  - bone weights
-    InstanceId  = 12,  // uint    - system-generated instance ID
-    PickId      = 13,  // uint    - object ID for picking pass
-    LayerId     = 14,  // uint    - CAD layer / group ID
-    ObjectId    = 15,  // uint    - unique object ID within scene
-    MaterialId  = 16,  // uint    - material index
-    User0       = 17,  // float4  - user-defined
-    User1       = 18,  // float4  - user-defined
-    User2       = 19,  // float4  - user-defined
-    User3       = 20,  // float4  - user-defined
+    Position    = 0,   // float3  - 物体空间 position
+    Normal      = 1,   // float3  - 物体空间 normal
+    Tangent     = 2,   // float4  - tangent + handedness(w)
+    Bitangent   = 3,   // float3  - binormal
+    Color0      = 4,   // ubyte4n / float4 - 主颜色
+    Color1      = 5,   // ubyte4n / float4 - 副颜色
+    TexCoord0   = 6,   // float2  - UV 通道 0
+    TexCoord1   = 7,   // float2  - UV 通道 1
+    TexCoord2   = 8,   // float2  - UV 通道 2
+    TexCoord3   = 9,   // float2  - UV 通道 3
+    Indices     = 10,  // uint4   - bone / instance 索引
+    Weight      = 11,  // float4  - bone 权重
+    InstanceId  = 12,  // uint    - 系统 instance ID
+    PickId      = 13,  // uint    - picking 用对象 ID
+    LayerId     = 14,  // uint    - CAD 图层 ID
+    ObjectId    = 15,  // uint    - 场景对象 ID
+    MaterialId  = 16,  // uint    - material 索引
+    User0       = 17,  // float4  - 自定义
+    User1       = 18,  // float4  - 自定义
+    User2       = 19,  // float4  - 自定义
+    User3       = 20,  // float4  - 自定义
     Count
 };
 
+// 语义名称
 constexpr const char* semanticName(VertexSemantic sem) {
     using enum VertexSemantic;
     switch (sem) {
@@ -68,7 +69,7 @@ constexpr const char* semanticName(VertexSemantic sem) {
     }
 }
 
-// HLSL semantic name (for shader generation)
+// HLSL 语义名称（着色器生成用）
 constexpr const char* semanticHlsl(VertexSemantic sem) {
     using enum VertexSemantic;
     switch (sem) {
@@ -93,7 +94,7 @@ constexpr const char* semanticHlsl(VertexSemantic sem) {
     }
 }
 
-// GLSL variable prefix
+// GLSL 变量前缀
 constexpr const char* semanticGlsl(VertexSemantic sem) {
     using enum VertexSemantic;
     switch (sem) {

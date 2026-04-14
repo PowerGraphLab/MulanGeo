@@ -1,8 +1,7 @@
 /*
- * Vertex Format — data format enum and traits
+ * 顶点数据格式 — 枚举与特征
  *
- * Defines how each vertex attribute is stored in memory
- * (float, half, normalized, packed, etc.)
+ * 定义顶点属性在内存中的存储方式（float、half、归一化、压缩等）
  */
 
 #pragma once
@@ -14,7 +13,7 @@
 namespace MulanGeo::Engine {
 
 // ============================================================
-// Vertex Component Format
+// 顶点分量格式
 // ============================================================
 
 enum class VertexFormat : uint8_t {
@@ -30,17 +29,17 @@ enum class VertexFormat : uint8_t {
     Half2      = 5,   // 2 x f16
     Half4      = 6,   // 4 x f16
 
-    // --- Signed normalized ---
+    // --- SNorm ---
     SNorm2     = 7,   // 2 x i16 → [-1, 1]
     SNorm4     = 8,   // 4 x i16 → [-1, 1]
     Byte4N     = 9,   // 4 x i8  → [-1, 1]
 
-    // --- Unsigned normalized ---
+    // --- UNorm ---
     UNorm2     = 10,  // 2 x u16 → [0, 1]
     UNorm4     = 11,  // 4 x u16 → [0, 1]
     UByte4N    = 12,  // 4 x u8  → [0, 1]
 
-    // --- Raw integer ---
+    // --- Integer ---
     Int        = 13,  // 1 x i32
     Int2       = 14,  // 2 x i32
     Int3       = 15,  // 3 x i32
@@ -49,7 +48,7 @@ enum class VertexFormat : uint8_t {
     UInt2      = 18,  // 2 x u32
     UInt3      = 19,  // 3 x u32
     UInt4      = 20,  // 4 x u32
-    UByte4     = 21,  // 4 x u8  (raw, NOT normalized)
+    UByte4     = 21,  // 4 x u8 (raw)
 
     // --- Packed ---
     RGB10A2    = 22,  // 10-10-10-2 packed, unorm
@@ -59,12 +58,12 @@ enum class VertexFormat : uint8_t {
 };
 
 // ============================================================
-// VertexFormat traits (all constexpr)
+// 格式特征信息（全部 constexpr）
 // ============================================================
 
 struct VertexFormatInfo {
     VertexFormat format;
-    uint8_t      componentCount;  // number of scalar components
+    uint8_t      componentCount;  // 标量分量数
     uint8_t      bytesPerComponent;
     uint8_t      totalBytes;
     bool         isNormalized;
@@ -108,7 +107,7 @@ constexpr VertexFormatInfo getVertexFormatInfo(VertexFormat fmt) {
     }
 }
 
-// Shorthand
+// 快捷查询
 constexpr uint8_t vertexFormatSize(VertexFormat fmt) {
     return getVertexFormatInfo(fmt).totalBytes;
 }
@@ -118,7 +117,7 @@ constexpr const char* vertexFormatName(VertexFormat fmt) {
 }
 
 // ============================================================
-// VertexFormat → C++ type mapping (used by VertexElement)
+// VertexFormat → C++ 类型映射（供 VertexElement 使用）
 // ============================================================
 
 template<VertexFormat F>
@@ -166,7 +165,7 @@ template<> struct VertexFormatTraits<VertexFormat::UByte4> {
     struct type { uint8_t x, y, z, w; };
 };
 
-// Generic fallback for formats without a specific specialization
+// 未特化的格式，回退为原始字节数组
 template<VertexFormat F>
 struct VertexFormatTraits {
     using type = std::array<std::byte, vertexFormatSize(F)>;

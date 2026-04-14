@@ -1,8 +1,8 @@
 /*
- * Vertex Layout — complete description of one vertex structure
+ * 顶点布局 — 顶点结构的完整描述
  *
- * Defines VertexAttribute, VertexLayout builder, IndexType,
- * pre-defined CAD layouts, and compile-time validation.
+ * 定义 VertexAttribute、VertexLayout 构建器、IndexType、
+ * 预定义 CAD 布局及编译期验证。
  */
 
 #pragma once
@@ -17,14 +17,14 @@
 namespace MulanGeo::Engine {
 
 // ============================================================
-// Vertex Attribute (one attribute in a layout)
+// 顶点属性（布局中的单个属性）
 // ============================================================
 
 struct VertexAttribute {
     VertexSemantic semantic   = VertexSemantic::Position;
     VertexFormat   format     = VertexFormat::Invalid;
-    uint16_t       offset     = 0;        // byte offset from vertex start
-    uint8_t        bufferSlot = 0;        // which vertex buffer [0-3]
+    uint16_t       offset     = 0;        // 距顶点起始的字节偏移
+    uint8_t        bufferSlot = 0;        // vertex buffer slot [0-3]
 
     constexpr VertexAttribute() = default;
     constexpr VertexAttribute(VertexSemantic sem, VertexFormat fmt,
@@ -41,7 +41,7 @@ struct VertexAttribute {
 };
 
 // ============================================================
-// Vertex Layout (complete description of one vertex)
+// 顶点布局（完整描述一个顶点的结构）
 // ============================================================
 
 static constexpr uint8_t kMaxVertexAttributes = 16;
@@ -51,7 +51,7 @@ class VertexLayout {
 public:
     constexpr VertexLayout() = default;
 
-    // Builder pattern - all constexpr
+    // 构建器模式（全部 constexpr）
     constexpr VertexLayout& begin(uint8_t bufferCount = 1) {
         m_attrCount   = 0;
         m_stride      = 0;
@@ -80,19 +80,19 @@ public:
         return *this;
     }
 
-    // Skip N bytes (manual padding)
+    // 跳过 N 字节（手动填充）
     constexpr VertexLayout& skip(uint8_t bytes) {
         m_stride += bytes;
         return *this;
     }
 
     constexpr VertexLayout& end() {
-        // Align stride to 4 bytes
+        // stride 4 字节对齐
         m_stride = (m_stride + 3u) & ~3u;
         return *this;
     }
 
-    // Query
+    // 查询
     constexpr uint16_t stride() const { return m_stride; }
     constexpr uint8_t  attrCount() const { return m_attrCount; }
     constexpr uint8_t  bufferCount() const { return m_bufferCount; }
@@ -103,7 +103,7 @@ public:
         return {m_attrs.data(), m_attrCount};
     }
 
-    // Find attribute by semantic
+    // 按语义查找属性
     constexpr const VertexAttribute* find(VertexSemantic sem) const {
         for (uint8_t i = 0; i < m_attrCount; ++i) {
             if (m_attrs[i].semantic == sem) return &m_attrs[i];
@@ -128,7 +128,7 @@ private:
 };
 
 // ============================================================
-// Index type
+// 索引类型
 // ============================================================
 
 enum class IndexType : uint8_t {
@@ -141,16 +141,17 @@ consteval uint8_t indexTypeSize(IndexType t) {
 }
 
 // ============================================================
-// Pre-defined CAD vertex layouts
+// 预定义 CAD 顶点布局
 //
-// These are the ONLY layouts a CAD viewer needs.
-// All other formats (STEP, glTF, DWG, IFC, etc.) are converted
-// to one of these at the mesh adapter layer.
+// CAD 查看器所需的全部布局。
+// 其他格式（STEP、glTF、DWG、IFC 等）在网格适配层
+// 转换为以下布局之一。
 // ============================================================
 
 namespace layouts {
 
-// Layout A: Wireframe / edges
+// 布局 A: Wireframe / edges
+// position(f3) + color(u32 packed), 16 bytes
 consteval VertexLayout wire() {
     VertexLayout l;
     l.begin(1)
@@ -160,7 +161,9 @@ consteval VertexLayout wire() {
     return l;
 }
 
-// Layout B: Solid fill
+// 布局 B: Solid fill
+// position(f3) + normal(f3) + color(u32 packed) + pad(4)
+// 32 bytes, cache-line 友好
 consteval VertexLayout solid() {
     VertexLayout l;
     l.begin(1)
@@ -172,7 +175,7 @@ consteval VertexLayout solid() {
     return l;
 }
 
-// Layout C: Solid + material
+// 布局 C: Solid + material ID
 consteval VertexLayout solidMaterial() {
     VertexLayout l;
     l.begin(1)
@@ -184,7 +187,7 @@ consteval VertexLayout solidMaterial() {
     return l;
 }
 
-// Layout D: Picking pass
+// 布局 D: Picking pass
 consteval VertexLayout pick() {
     VertexLayout l;
     l.begin(1)
@@ -194,7 +197,7 @@ consteval VertexLayout pick() {
     return l;
 }
 
-// Layout E: Full PBR
+// 布局 E: Full PBR
 consteval VertexLayout pbr() {
     VertexLayout l;
     l.begin(1)
@@ -206,7 +209,7 @@ consteval VertexLayout pbr() {
     return l;
 }
 
-// Layout F: Point cloud
+// 布局 F: Point cloud
 consteval VertexLayout pointCloud() {
     VertexLayout l;
     l.begin(1)
@@ -216,7 +219,7 @@ consteval VertexLayout pointCloud() {
     return l;
 }
 
-// Layout G: BIM/IFC with object metadata
+// 布局 G: BIM/IFC，含 object 元数据
 consteval VertexLayout bim() {
     VertexLayout l;
     l.begin(1)
@@ -230,7 +233,7 @@ consteval VertexLayout bim() {
     return l;
 }
 
-// Layout H: 2D overlay
+// 布局 H: 2D overlay
 consteval VertexLayout overlay2D() {
     VertexLayout l;
     l.begin(1)
@@ -240,7 +243,7 @@ consteval VertexLayout overlay2D() {
     return l;
 }
 
-// Layout I: SoA multi-buffer layout
+// 布局 I: SoA multi-buffer
 consteval VertexLayout soaSolid() {
     VertexLayout l;
     l.begin(3)
@@ -251,7 +254,7 @@ consteval VertexLayout soaSolid() {
     return l;
 }
 
-// Layout J: Skinned mesh
+// 布局 J: Skinned mesh
 consteval VertexLayout skinned() {
     VertexLayout l;
     l.begin(1)
@@ -265,7 +268,7 @@ consteval VertexLayout skinned() {
     return l;
 }
 
-// Layout K: Solid with texture
+// 布局 K: Solid + texture
 consteval VertexLayout solidTextured() {
     VertexLayout l;
     l.begin(1)
@@ -278,7 +281,7 @@ consteval VertexLayout solidTextured() {
     return l;
 }
 
-// Layout L: Lightmap / double-UV
+// 布局 L: Lightmap / double-UV
 consteval VertexLayout lightmap() {
     VertexLayout l;
     l.begin(1)
@@ -294,7 +297,7 @@ consteval VertexLayout lightmap() {
 } // namespace layouts
 
 // ============================================================
-// Compile-time layout validation
+// 编译期布局验证
 // ============================================================
 
 constexpr bool validateLayout(const VertexLayout& L) {
@@ -306,7 +309,7 @@ constexpr bool validateLayout(const VertexLayout& L) {
     return true;
 }
 
-// Static assertions for built-in layouts
+// 内置布局合法性检查
 static_assert(validateLayout(layouts::wire()));
 static_assert(validateLayout(layouts::solid()));
 static_assert(validateLayout(layouts::pick()));
@@ -320,7 +323,7 @@ static_assert(validateLayout(layouts::skinned()));
 static_assert(validateLayout(layouts::solidTextured()));
 static_assert(validateLayout(layouts::lightmap()));
 
-// Size checks
+// 步长大小检查
 static_assert(layouts::wire().stride() == 16);
 static_assert(layouts::solid().stride() == 32);
 static_assert(layouts::pick().stride() == 16);
