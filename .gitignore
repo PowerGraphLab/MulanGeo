@@ -6,6 +6,9 @@ Release/
 RelWithDebInfo/
 MinSizeRel/
 
+# 构建时生成的 include 目录（由 CMake 从源文件复制）
+include/
+
 # Visual Studio
 *.vcxproj
 *.vcxproj.filters

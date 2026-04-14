@@ -1,26 +1,27 @@
-# IO Module - CAD file import library (DLL)
+# IO - CAD 文件导入库 (DLL)
 add_library(IO SHARED
-    src/ImporterFactory.cpp
-    src/OCCTImporter.cpp
+    ImporterFactory.cpp
+    OCCTImporter.cpp
 )
+
+# 构建时将头文件复制到 build/include/MulanGeo/IO/...
+file(GLOB_RECURSE IO_HEADERS
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
+)
+foreach(hdr ${IO_HEADERS})
+    file(RELATIVE_PATH rel "${CMAKE_CURRENT_SOURCE_DIR}" "${hdr}")
+    configure_file("${hdr}" "${CMAKE_BINARY_DIR}/include/MulanGeo/IO/${rel}" COPYONLY)
+endforeach()
 
 target_include_directories(IO PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
 )
-
-# Copy public headers to build/include
-file(GLOB_RECURSE IO_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
-foreach(hdr ${IO_HEADERS})
-    file(RELATIVE_PATH rel "${CMAKE_CURRENT_SOURCE_DIR}/include" "${hdr}")
-    configure_file("${hdr}" "${CMAKE_BINARY_DIR}/include/${rel}" COPYONLY)
-endforeach()
 
 target_include_directories(IO PRIVATE
     ${OCCT_INCLUDE_DIR}
 )
 
-# Link OCCT libraries (find .lib files)
+# 链接 OCCT 库
 foreach(lib ${OCCT_LIBS})
     find_library(OCCT_${lib} ${lib} PATHS ${OCCT_LIB_DIR} NO_DEFAULT_PATH)
     if(OCCT_${lib})
