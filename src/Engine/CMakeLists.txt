@@ -1,6 +1,7 @@
 # Engine - 渲染后端与场景管理 (DLL)
 add_library(Engine SHARED
     RHI/vertex_layout_test.cpp
+    Math/Mat4.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Engine/...
