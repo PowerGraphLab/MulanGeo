@@ -9,9 +9,9 @@
 #include "Vec3.h"
 #include "Mat4.h"
 
-namespace MulanGeo::Engine {
-
 #include <limits>
+
+namespace MulanGeo::Engine {
 
 struct AABB {
     Vec3 min = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
@@ -30,8 +30,8 @@ struct AABB {
     }
 
     void reset() {
-        min = {FLT_MAX, FLT_MAX, FLT_MAX};
-        max = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+        min = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
+        max = {std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest()};
     }
 
     // 扩展以包含点
@@ -49,8 +49,8 @@ struct AABB {
 
     // --- 查询 ---
 
-    Vec3 center() const { return (min + max) * 0.5f; }
-    Vec3 extents() const { return (max - min) * 0.5f; }
+    Vec3 center() const { return (min + max) * 0.5; }
+    Vec3 extents() const { return (max - min) * 0.5; }
     Vec3 size() const { return max - min; }
 
     bool contains(const Vec3& p) const {
