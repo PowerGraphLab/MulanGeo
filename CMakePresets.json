@@ -3,19 +3,10 @@
     "cmakeMinimumRequired": { "major": 3, "minor": 20, "patch": 0 },
     "configurePresets": [
         {
-            "name": "default",
-            "displayName": "Default (MSVC x64 Release)",
-            "binaryDir": "${sourceDir}/build",
+            "name": "base",
+            "hidden": true,
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "OCCT_ROOT": {
-                    "type": "PATH",
-                    "value": "F:/dev/opencascade-7.9.3-vc14-64"
-                },
-                "OCCT_3RDPARTY_DIR": {
-                    "type": "PATH",
-                    "value": "F:/dev/3rdparty-vc14-64"
-                },
                 "CMAKE_PREFIX_PATH": {
                     "type": "PATH",
                     "value": "F:/dev/qt6/6.8.3/msvc2022_64"
@@ -26,23 +17,71 @@
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
             }
+        },
+        {
+            "name": "debug",
+            "displayName": "Debug (MSVC x64)",
+            "inherits": "base",
+            "binaryDir": "${sourceDir}/build/debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "OCCT_ROOT": {
+                    "type": "PATH",
+                    "value": "C:/dev/cpp_libs/occt_debug/opencascade-7.9.3-vc14-64"
+                },
+                "OCCT_3RDPARTY_DIR": {
+                    "type": "PATH",
+                    "value": "C:/dev/cpp_libs/occt_debug/3rdparty-vc14-64"
+                }
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "Release (MSVC x64)",
+            "inherits": "base",
+            "binaryDir": "${sourceDir}/build/release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "OCCT_ROOT": {
+                    "type": "PATH",
+                    "value": "C:/dev/cpp_libs/occt_release/opencascade-7.9.3-vc14-64"
+                },
+                "OCCT_3RDPARTY_DIR": {
+                    "type": "PATH",
+                    "value": "C:/dev/cpp_libs/occt_release/3rdparty-vc14-64"
+                }
+            }
+        },
+        {
+            "name": "relwithdebinfo",
+            "displayName": "RelWithDebInfo (MSVC x64)",
+            "inherits": "base",
+            "binaryDir": "${sourceDir}/build/relwithdebinfo",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "OCCT_ROOT": {
+                    "type": "PATH",
+                    "value": "C:/dev/cpp_libs/occt_release/opencascade-7.9.3-vc14-64"
+                },
+                "OCCT_3RDPARTY_DIR": {
+                    "type": "PATH",
+                    "value": "C:/dev/cpp_libs/occt_release/3rdparty-vc14-64"
+                }
+            }
         }
     ],
     "buildPresets": [
         {
-            "name": "release",
-            "configurePreset": "default",
-            "configuration": "Release"
+            "name": "debug",
+            "configurePreset": "debug"
         },
         {
-            "name": "debug",
-            "configurePreset": "default",
-            "configuration": "Debug"
+            "name": "release",
+            "configurePreset": "release"
         },
         {
             "name": "relwithdebinfo",
-            "configurePreset": "default",
-            "configuration": "RelWithDebInfo"
+            "configurePreset": "relwithdebinfo"
         }
     ]
 }
