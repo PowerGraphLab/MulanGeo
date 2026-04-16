@@ -3,6 +3,16 @@ add_library(Engine STATIC
     RHI/vertex_layout_test.cpp
     RHI/DeviceFactory.cpp
     Math/Mat4.cpp
+    RHI/Vulkan/VKBuffer.cpp
+    RHI/Vulkan/VKTexture.cpp
+    RHI/Vulkan/VKShader.cpp
+    RHI/Vulkan/VKFence.cpp
+    RHI/Vulkan/VKFrameContext.cpp
+    RHI/Vulkan/VKCommandList.cpp
+    RHI/Vulkan/VKPipelineState.cpp
+    RHI/Vulkan/VKDescriptorAllocator.cpp
+    RHI/Vulkan/VKUploadContext.cpp
+    RHI/Vulkan/VKSwapChain.cpp
     RHI/Vulkan/VKDevice.cpp
 )
 
