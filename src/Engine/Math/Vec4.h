@@ -15,6 +15,7 @@ struct Vec4 {
     static constexpr Vec4 zero() { return {0, 0, 0, 0}; }
 
     constexpr Vec4 operator+(const Vec4& b) const { return {x+b.x, y+b.y, z+b.z, w+b.w}; }
+    constexpr Vec4 operator-(const Vec4& b) const { return {x-b.x, y-b.y, z-b.z, w-b.w}; }
     constexpr Vec4 operator*(double s) const { return {x*s, y*s, z*s, w*s}; }
     constexpr Vec4 operator-() const { return {-x, -y, -z, -w}; }
 

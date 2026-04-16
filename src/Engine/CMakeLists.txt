@@ -44,6 +44,11 @@ target_compile_definitions(Engine PRIVATE
     $<$<CONFIG:Debug>:_DEBUG>
 )
 
+# MSVC: 多文件并行编译写同一 PDB 需要 /FS
+if(MSVC)
+    target_compile_options(Engine PRIVATE /FS)
+endif()
+
 # --- Shader 编译 (HLSL → SPIR-V via dxc) ---
 # 查找 dxc
 find_program(DXC_EXECUTABLE dxc

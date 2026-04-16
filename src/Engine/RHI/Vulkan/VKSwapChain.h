@@ -11,6 +11,7 @@
 #include "../../Window.h"
 #include "VkConvert.h"
 #include "VKCommandList.h"
+#include "VKTexture.h"
 
 #include <array>
 

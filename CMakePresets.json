@@ -5,17 +5,14 @@
         {
             "name": "base",
             "hidden": true,
-            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            "toolchainFile": "$penv{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "cacheVariables": {
                 "CMAKE_PREFIX_PATH": {
                     "type": "PATH",
-                    "value": "F:/dev/qt6/6.8.3/msvc2022_64"
-                }
-            },
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
+                    "value": "$penv{QTDIR}"
+                },
+                "OCCT_ROOT": "$penv{OCCT_ROOT}",
+                "OCCT_3RDPARTY_DIR": "$penv{OCCT_3RDPARTY_DIR}"
             }
         },
         {
@@ -24,15 +21,7 @@
             "inherits": "base",
             "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "OCCT_ROOT": {
-                    "type": "PATH",
-                    "value": "C:/dev/cpp_libs/occt_debug/opencascade-7.9.3-vc14-64"
-                },
-                "OCCT_3RDPARTY_DIR": {
-                    "type": "PATH",
-                    "value": "C:/dev/cpp_libs/occt_debug/3rdparty-vc14-64"
-                }
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -41,15 +30,7 @@
             "inherits": "base",
             "binaryDir": "${sourceDir}/build/release",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "OCCT_ROOT": {
-                    "type": "PATH",
-                    "value": "C:/dev/cpp_libs/occt_release/opencascade-7.9.3-vc14-64"
-                },
-                "OCCT_3RDPARTY_DIR": {
-                    "type": "PATH",
-                    "value": "C:/dev/cpp_libs/occt_release/3rdparty-vc14-64"
-                }
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
@@ -58,15 +39,7 @@
             "inherits": "base",
             "binaryDir": "${sourceDir}/build/relwithdebinfo",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "OCCT_ROOT": {
-                    "type": "PATH",
-                    "value": "C:/dev/cpp_libs/occt_release/opencascade-7.9.3-vc14-64"
-                },
-                "OCCT_3RDPARTY_DIR": {
-                    "type": "PATH",
-                    "value": "C:/dev/cpp_libs/occt_release/3rdparty-vc14-64"
-                }
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             }
         }
     ],

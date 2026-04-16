@@ -97,6 +97,9 @@ public:
 
     virtual const BufferDesc& desc() const = 0;
 
+    /// CPU 端更新缓冲区数据（对于 UBO/Dynamic buffer 直接映射写入）
+    virtual void update(uint32_t offset, uint32_t size, const void* data) = 0;
+
     // 便捷查询
     uint32_t        size()     const { return desc().size; }
     BufferUsage     usage()    const { return desc().usage; }

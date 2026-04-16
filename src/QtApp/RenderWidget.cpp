@@ -93,7 +93,7 @@ bool RenderWidget::initRHI() {
     createUBOs();
 
     // --- Camera ---
-    m_camera.setSize(width(), height());
+    m_camera.setViewport(width(), height());
     m_camera.fitToBox(AABB(Vec3(-1, -1, -1), Vec3(1, 1, 1)));
 
     m_initialized = true;
@@ -141,7 +141,7 @@ void RenderWidget::loadShaders() {
     m_solidVs = m_device->createShader(vsDesc);
 
     ShaderDesc fsDesc;
-    fsDesc.type         = ShaderType::Fragment;
+    fsDesc.type         = ShaderType::Pixel;
     fsDesc.byteCode     = solidFsData.data();
     fsDesc.byteCodeSize = static_cast<uint32_t>(solidFsData.size());
     m_solidFs = m_device->createShader(fsDesc);
@@ -154,9 +154,9 @@ void RenderWidget::loadShaders() {
 void RenderWidget::createPSOs() {
     // CAD 标准顶点布局: pos(3f) + normal(3f) + uv(2f) = 32 bytes
     m_vertexLayout.begin()
-        .add(VertexSemantic::Position, VertexFormat::RGB32Float)
-        .add(VertexSemantic::Normal,   VertexFormat::RGB32Float)
-        .add(VertexSemantic::TexCoord, VertexFormat::RG32Float);
+        .add(VertexSemantic::Position, VertexFormat::Float3)
+        .add(VertexSemantic::Normal,   VertexFormat::Float3)
+        .add(VertexSemantic::TexCoord0, VertexFormat::Float2);
 
     GraphicsPipelineDesc solidDesc;
     solidDesc.name                  = "Solid";
@@ -274,7 +274,7 @@ void RenderWidget::updateCameraUBO() {
     memcpy(ubo.projection,     proj.data(),     64);
     memcpy(ubo.viewProjection, viewProj.data(), 64);
 
-    auto pos = m_camera.position();
+    auto pos = m_camera.eyePosition();
     ubo.cameraPos[0] = static_cast<float>(pos.x);
     ubo.cameraPos[1] = static_cast<float>(pos.y);
     ubo.cameraPos[2] = static_cast<float>(pos.z);
@@ -335,31 +335,23 @@ void RenderWidget::loadMesh(const MulanGeo::IO::ImportResult& result) {
         std::vector<VertP3N3UV2> vertices(src.vertices.size());
         for (size_t i = 0; i < src.vertices.size(); ++i) {
             vertices[i] = {
-                src.vertices[i].x, src.vertices[i].y, src.vertices[i].z,
-                src.vertices[i].nx, src.vertices[i].ny, src.vertices[i].nz,
-                src.vertices[i].u, src.vertices[i].v
+                src.vertices[i].position.x, src.vertices[i].position.y, src.vertices[i].position.z,
+                src.vertices[i].normal.x, src.vertices[i].normal.y, src.vertices[i].normal.z,
+                src.vertices[i].texCoord.u, src.vertices[i].texCoord.v
             };
         }
 
         if (!vertices.empty()) {
-            auto vbd = BufferDesc::vertex(
-                static_cast<uint32_t>(vertices.size() * sizeof(VertP3N3UV2)),
-                sizeof(VertP3N3UV2), "VB");
+            uint32_t vbSize = static_cast<uint32_t>(vertices.size() * sizeof(VertP3N3UV2));
+            auto vbd = BufferDesc::vertex(vbSize, vertices.data(), "VB");
             gpu.vertexBuffer = m_device->createBuffer(vbd);
-            gpu.vertexBuffer->update(0,
-                static_cast<uint32_t>(vertices.size() * sizeof(VertP3N3UV2)),
-                vertices.data());
             gpu.vertexCount = static_cast<uint32_t>(vertices.size());
         }
 
         if (!src.indices.empty()) {
-            auto ibd = BufferDesc::index(
-                static_cast<uint32_t>(src.indices.size() * sizeof(uint32_t)),
-                IndexType::UInt32, "IB");
+            uint32_t ibSize = static_cast<uint32_t>(src.indices.size() * sizeof(uint32_t));
+            auto ibd = BufferDesc::index(ibSize, src.indices.data(), "IB");
             gpu.indexBuffer = m_device->createBuffer(ibd);
-            gpu.indexBuffer->update(0,
-                static_cast<uint32_t>(src.indices.size() * sizeof(uint32_t)),
-                src.indices.data());
             gpu.indexCount = static_cast<uint32_t>(src.indices.size());
         }
 
@@ -392,7 +384,7 @@ void RenderWidget::resizeEvent(QResizeEvent* e) {
         if (m_solidPso) {
             m_solidPso->finalize(m_swapchain);
         }
-        m_camera.setSize(width(), height());
+        m_camera.setViewport(width(), height());
     }
 }
 
