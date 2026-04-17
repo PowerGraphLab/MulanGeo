@@ -8,6 +8,8 @@ add_library(Engine STATIC
     Scene/Scene.cpp
     Scene/Frustum.cpp
     Scene/Camera.cpp
+    Render/GeometryCache.cpp
+    Render/SceneRenderer.cpp
     RHI/Vulkan/VKBuffer.cpp
     RHI/Vulkan/VKTexture.cpp
     RHI/Vulkan/VKShader.cpp
@@ -47,6 +49,7 @@ target_link_libraries(Engine PUBLIC
 
 target_compile_definitions(Engine PRIVATE
     $<$<CONFIG:Debug>:_DEBUG>
+    _USE_MATH_DEFINES
 )
 
 # MSVC: 多文件并行编译写同一 PDB 需要 /FS

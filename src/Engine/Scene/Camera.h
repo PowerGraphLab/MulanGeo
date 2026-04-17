@@ -7,7 +7,6 @@
 
 #pragma once
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 
 #include "../Math/Vec3.h"
