@@ -19,7 +19,7 @@
             "name": "debug",
             "displayName": "Debug (MSVC x64)",
             "inherits": "base",
-            "binaryDir": "${sourceDir}/build/debug",
+            "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
             }
@@ -28,7 +28,7 @@
             "name": "release",
             "displayName": "Release (MSVC x64)",
             "inherits": "base",
-            "binaryDir": "${sourceDir}/build/release",
+            "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
@@ -37,7 +37,7 @@
             "name": "relwithdebinfo",
             "displayName": "RelWithDebInfo (MSVC x64)",
             "inherits": "base",
-            "binaryDir": "${sourceDir}/build/relwithdebinfo",
+            "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             }
