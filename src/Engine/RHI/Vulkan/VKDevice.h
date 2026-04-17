@@ -129,6 +129,11 @@ private:
 
     uint32_t                    m_frameCount   = 2;
     uint32_t                    m_currentFrame = 0;
+
+    // per-swapchain-image 的信号量，替代 per-frame 的 renderFinished
+    // 按 acquired image index 索引，解决 present 异步持有信号量的问题
+    std::vector<vk::Semaphore>  m_renderFinishedSemaphores;
+    uint32_t                    m_acquiredImageIndex = 0;
 };
 
 } // namespace MulanGeo::Engine

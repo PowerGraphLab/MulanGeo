@@ -51,6 +51,12 @@ void RenderWidget::showEvent(QShowEvent* e) {
         NativeWindowHandle handle{};
 #endif
         if (!m_view.init(handle, width(), height())) return;
+
+        // 加载 init 之前缓存的 mesh
+        if (m_pendingMesh) {
+            m_view.loadMesh(*m_pendingMesh);
+            m_pendingMesh.reset();
+        }
         requestFrame();
     }
 }
@@ -148,8 +154,12 @@ void RenderWidget::keyReleaseEvent(QKeyEvent* e) {
 // ============================================================
 
 void RenderWidget::loadMesh(const MulanGeo::IO::ImportResult& result) {
-    m_view.loadMesh(result);
-    requestFrame();
+    if (m_view.isInitialized()) {
+        m_view.loadMesh(result);
+        requestFrame();
+    } else {
+        m_pendingMesh = result;
+    }
 }
 
 void RenderWidget::requestFrame() {

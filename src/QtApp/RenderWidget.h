@@ -16,8 +16,10 @@
 
 #include <MulanGeo/Engine/Render/EngineView.h>
 #include <MulanGeo/Engine/Interaction/InputEvent.h>
+#include <MulanGeo/IO/MeshData.h>
 
 #include <memory>
+#include <optional>
 
 namespace MulanGeo::IO {
 struct ImportResult;
@@ -71,4 +73,5 @@ private:
     static MulanGeo::Engine::Key translateKey(int qtKey);
 
     MulanGeo::Engine::EngineView  m_view;
+    std::optional<MulanGeo::IO::ImportResult> m_pendingMesh;
 };

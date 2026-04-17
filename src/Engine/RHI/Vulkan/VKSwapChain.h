@@ -55,6 +55,7 @@ public:
     // --- Vulkan 特有 ---
     vk::RenderPass   renderPass()         const { return m_renderPass; }
     vk::Framebuffer  currentFramebuffer() const { return m_framebuffers[m_currentImageIndex]; }
+    uint32_t         currentImageIndex()  const { return m_currentImageIndex; }
     uint32_t         imageCount()         const { return static_cast<uint32_t>(m_swapchainImages.size()); }
     vk::Extent2D     extent()             const { return m_swapchainExtent; }
 

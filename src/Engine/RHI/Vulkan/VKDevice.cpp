@@ -53,6 +53,12 @@ SwapChain* VKDevice::createSwapChain(const SwapChainDesc& desc) {
     auto* swapchain = new VKSwapChain(desc, params, m_renderConfig);
     m_swapChains.push_back(swapchain);
 
+    // 为每个 swapchain image 创建独立的 renderFinished 信号量
+    for (uint32_t i = static_cast<uint32_t>(m_renderFinishedSemaphores.size());
+         i < swapchain->imageCount(); ++i) {
+        m_renderFinishedSemaphores.push_back(m_device.createSemaphore({}));
+    }
+
     if (m_frameContexts.empty()) {
         initFrameContexts(m_frameCount);
     }
@@ -138,6 +144,10 @@ void VKDevice::beginFrame() {
     auto& frame = currentFrameContext();
     frame.waitForFence();
     frame.resetFence();
+
+    // 确保所有帧的 GPU 命令执行完毕再 reset descriptor pool
+    m_device.waitIdle();
+
     frame.resetCommandBuffer();
 
     m_descriptorAllocator->resetPools();
@@ -147,6 +157,7 @@ void VKDevice::beginFrame() {
     if (!m_swapChains.empty()) {
         auto* sc = m_swapChains[0];
         sc->acquireNextImage(frame.imageAvailable());
+        m_acquiredImageIndex = sc->currentImageIndex();
     }
 }
 
@@ -157,6 +168,9 @@ CommandList* VKDevice::frameCommandList() {
 void VKDevice::submitAndPresent(SwapChain* swapchain) {
     auto* vkSC  = static_cast<VKSwapChain*>(swapchain);
     auto& frame = currentFrameContext();
+
+    // 使用 per-image 的 renderFinished 信号量
+    vk::Semaphore renderFinished = m_renderFinishedSemaphores[m_acquiredImageIndex];
 
     vk::SubmitInfo submitInfo;
     submitInfo.commandBufferCount = 1;
@@ -171,13 +185,12 @@ void VKDevice::submitAndPresent(SwapChain* swapchain) {
     submitInfo.pWaitSemaphores      = waitSemaphores;
     submitInfo.pWaitDstStageMask    = waitStages;
 
-    vk::Semaphore signalSemaphores[] = { frame.renderFinished() };
     submitInfo.signalSemaphoreCount  = 1;
-    submitInfo.pSignalSemaphores     = signalSemaphores;
+    submitInfo.pSignalSemaphores     = &renderFinished;
 
     m_graphicsQueue.submit(submitInfo, frame.inFlightFence());
 
-    vkSC->presentWithSemaphores(frame.renderFinished());
+    vkSC->presentWithSemaphores(renderFinished);
 
     m_currentFrame = (m_currentFrame + 1) % m_frameCount;
 }
