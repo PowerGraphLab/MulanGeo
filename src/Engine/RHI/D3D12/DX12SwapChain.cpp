@@ -81,37 +81,12 @@ void DX12SwapChain::createBackBuffers() {
     }
 
     // Depth stencil
-    D3D12_RESOURCE_DESC dsDesc = {};
-    dsDesc.Dimension          = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    dsDesc.Alignment          = 0;
-    dsDesc.Width              = m_desc.width;
-    dsDesc.Height             = m_desc.height;
-    dsDesc.DepthOrArraySize   = 1;
-    dsDesc.MipLevels          = 1;
-    dsDesc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    dsDesc.SampleDesc.Count   = 1;
-    dsDesc.Layout             = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    dsDesc.Flags              = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-    D3D12_HEAP_PROPERTIES heapProps = {};
-    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-    D3D12_CLEAR_VALUE clearVal = {};
-    clearVal.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    clearVal.DepthStencil.Depth = 1.0f;
-
-    ComPtr<ID3D12Resource> depthResource;
-    m_device->CreateCommittedResource(
-        &heapProps, D3D12_HEAP_FLAG_NONE,
-        &dsDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE,
-        &clearVal, IID_PPV_ARGS(&depthResource));
-
-    auto dsvDesc = m_dsvHeap->allocate();
-    m_device->CreateDepthStencilView(depthResource.Get(), nullptr, dsvDesc.cpu);
-
     m_depthTexture = std::make_unique<DX12Texture>(
         TextureDesc::depthStencil(m_desc.width, m_desc.height),
         m_device, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+    auto dsvDesc = m_dsvHeap->allocate();
+    m_device->CreateDepthStencilView(m_depthTexture->resource(), nullptr, dsvDesc.cpu);
 }
 
 void DX12SwapChain::releaseBackBuffers() {

@@ -44,7 +44,7 @@ bool EngineView::init(const NativeWindowHandle& window, int width, int height) {
     config.stencilBuffer = false;
 
     DeviceCreateInfo ci;
-    ci.backend          = GraphicsBackend::Vulkan;
+    ci.backend          = GraphicsBackend::D3D12;
     ci.window           = window;
     ci.renderConfig     = config;
     ci.enableValidation = true;
@@ -177,7 +177,7 @@ void EngineView::resize(int width, int height) {
 // ============================================================
 
 void EngineView::loadShaders() {
-    auto loadSPIRV = [](const char* path) -> std::vector<uint8_t> {
+    auto loadFile = [](const char* path) -> std::vector<uint8_t> {
         FILE* f = nullptr;
 #ifdef _WIN32
         fopen_s(&f, path, "rb");
@@ -200,8 +200,11 @@ void EngineView::loadShaders() {
     std::string shaderDir = "shaders";
 #endif
 
-    auto solidVsData = loadSPIRV((shaderDir + "/solid.vert.spv").c_str());
-    auto solidFsData = loadSPIRV((shaderDir + "/solid.frag.spv").c_str());
+    // D3D12 加载 DXIL，Vulkan/OpenGL 加载 SPIR-V
+    const char* ext = (m_device->backend() == GraphicsBackend::D3D12) ? ".dxil" : ".spv";
+
+    auto solidVsData = loadFile((shaderDir + "/solid.vert" + ext).c_str());
+    auto solidFsData = loadFile((shaderDir + "/solid.frag" + ext).c_str());
 
     ShaderDesc vsDesc;
     vsDesc.type         = ShaderType::Vertex;

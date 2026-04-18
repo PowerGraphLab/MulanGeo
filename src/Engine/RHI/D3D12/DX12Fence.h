@@ -14,7 +14,7 @@ namespace MulanGeo::Engine {
 class DX12Fence final : public Fence {
 public:
     DX12Fence(ID3D12Device* device, uint64_t initialValue);
-    ~DX12Fence() = default;
+    ~DX12Fence();
 
     void signal(uint64_t value) override;
     void wait(uint64_t value) override;

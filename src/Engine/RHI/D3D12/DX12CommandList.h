@@ -56,6 +56,7 @@ public:
 private:
     ComPtr<ID3D12GraphicsCommandList> m_cmdList;
     bool m_ownsCmdList = true;  // 是否在析构时释放
+    uint32_t m_cachedStride = 0;  // 从 PSO vertexLayout 缓存的 stride
 };
 
 } // namespace MulanGeo::Engine

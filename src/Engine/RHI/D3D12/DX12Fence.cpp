@@ -30,4 +30,11 @@ uint64_t DX12Fence::completedValue() const {
     return m_fence->GetCompletedValue();
 }
 
+DX12Fence::~DX12Fence() {
+    if (m_event) {
+        CloseHandle(m_event);
+        m_event = nullptr;
+    }
+}
+
 } // namespace MulanGeo::Engine

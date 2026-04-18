@@ -84,7 +84,7 @@ if(MSVC)
     target_compile_options(Engine PRIVATE /FS)
 endif()
 
-# --- Shader 编译 (HLSL → SPIR-V via dxc) ---
+# --- Shader 编译 (HLSL → SPIR-V + DXIL via dxc) ---
 # 查找 dxc
 find_program(DXC_EXECUTABLE dxc
     HINTS
@@ -145,10 +145,10 @@ if(DXC_EXECUTABLE)
             set(SHADER_ENTRY main)
         endif()
 
-        # 输出文件名: solid.vert.hlsl → solid.vert.spv
-        string(REPLACE ".hlsl" ".spv" SPV_FILE "${SHADER_FILE}")
+        set(SHADER_INPUT "${SHADER_SOURCE_DIR}/${SHADER_FILE}")
 
-        set(SPV_INPUT  "${SHADER_SOURCE_DIR}/${SHADER_FILE}")
+        # --- SPIR-V (Vulkan) ---
+        string(REPLACE ".hlsl" ".spv" SPV_FILE "${SHADER_FILE}")
         set(SPV_OUTPUT "${SHADER_OUTPUT_DIR}/${SPV_FILE}")
 
         add_custom_command(
@@ -159,15 +159,31 @@ if(DXC_EXECUTABLE)
                 -spirv
                 -I "${SHADER_SOURCE_DIR}"
                 -Fo "${SPV_OUTPUT}"
-                "${SPV_INPUT}"
-            DEPENDS "${SPV_INPUT}" "${SHADER_COMMON}"
-            COMMENT "Compiling shader: ${SHADER_FILE} → ${SPV_FILE}"
+                "${SHADER_INPUT}"
+            DEPENDS "${SHADER_INPUT}" "${SHADER_COMMON}"
+            COMMENT "Compiling shader: ${SHADER_FILE} → ${SPV_FILE} (SPIR-V)"
         )
+        list(APPEND SHADER_OUTPUTS "${SPV_OUTPUT}")
 
-        list(APPEND SPIRV_FILES "${SPV_OUTPUT}")
+        # --- DXIL (D3D12) ---
+        string(REPLACE ".hlsl" ".dxil" DXIL_FILE "${SHADER_FILE}")
+        set(DXIL_OUTPUT "${SHADER_OUTPUT_DIR}/${DXIL_FILE}")
+
+        add_custom_command(
+            OUTPUT  "${DXIL_OUTPUT}"
+            COMMAND "${DXC_EXECUTABLE}"
+                -T ${SHADER_STAGE}_6_0
+                -E ${SHADER_ENTRY}
+                -I "${SHADER_SOURCE_DIR}"
+                -Fo "${DXIL_OUTPUT}"
+                "${SHADER_INPUT}"
+            DEPENDS "${SHADER_INPUT}" "${SHADER_COMMON}"
+            COMMENT "Compiling shader: ${SHADER_FILE} → ${DXIL_FILE} (DXIL)"
+        )
+        list(APPEND SHADER_OUTPUTS "${DXIL_OUTPUT}")
     endforeach()
 
-    add_custom_target(Shaders ALL DEPENDS ${SPIRV_FILES})
+    add_custom_target(Shaders ALL DEPENDS ${SHADER_OUTPUTS})
     add_dependencies(Engine Shaders)
 
     # 将 shader 输出目录作为 include path（方便运行时加载）

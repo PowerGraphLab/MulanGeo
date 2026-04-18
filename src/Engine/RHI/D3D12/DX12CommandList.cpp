@@ -60,6 +60,7 @@ void DX12CommandList::setPipelineState(PipelineState* pso) {
     m_cmdList->SetPipelineState(dx12Pso->pipeline());
     m_cmdList->SetGraphicsRootSignature(dx12Pso->rootSignature());
     m_cmdList->IASetPrimitiveTopology(toDX12Topology(pso->desc().topology));
+    m_cachedStride = pso->desc().vertexLayout.stride();
 }
 
 void DX12CommandList::setViewport(const Viewport& vp) {
@@ -78,10 +79,7 @@ void DX12CommandList::setVertexBuffer(uint32_t slot, Buffer* buffer, uint32_t of
     D3D12_VERTEX_BUFFER_VIEW vbv = {};
     vbv.BufferLocation = dx12Buf->gpuAddress() + offset;
     vbv.SizeInBytes    = buffer->size() - offset;
-    vbv.StrideInBytes  = 0;  // 由 PSO 的 Input Layout 决定
-    // 注意：DX12 不从 VBV 取 stride，但我们设一个合理的值
-    // 从当前 PSO 的 vertexLayout 获取 stride — 这里简化处理
-    vbv.StrideInBytes = buffer->size();  // 会在 setVertexBuffers 中正确设置
+    vbv.StrideInBytes  = m_cachedStride;
     m_cmdList->IASetVertexBuffers(slot, 1, &vbv);
 }
 
@@ -92,7 +90,7 @@ void DX12CommandList::setVertexBuffers(uint32_t startSlot, uint32_t count,
         auto* dx12Buf = static_cast<DX12Buffer*>(buffers[i]);
         vbvs[i].BufferLocation = dx12Buf->gpuAddress() + (offsets ? offsets[i] : 0);
         vbvs[i].SizeInBytes    = buffers[i]->size() - (offsets ? offsets[i] : 0);
-        vbvs[i].StrideInBytes  = 0;  // 由 PSO Input Layout 决定
+        vbvs[i].StrideInBytes  = m_cachedStride;
     }
     m_cmdList->IASetVertexBuffers(startSlot, count, vbvs);
 }

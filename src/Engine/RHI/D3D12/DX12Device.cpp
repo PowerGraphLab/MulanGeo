@@ -231,10 +231,7 @@ void DX12Device::submitAndPresent(SwapChain* swapchain) {
     auto* dx12Swap = static_cast<DX12SwapChain*>(swapchain);
     auto& frame = m_frames[m_frameIndex];
 
-    // 关闭命令列表
-    frame->commandList()->Close();
-
-    // 提交
+    // cmd list 已由 EngineView::cmd->end() 关闭，直接提交
     ID3D12CommandList* lists[] = { frame->commandList() };
     m_commandQueue->ExecuteCommandLists(1, lists);
 
@@ -249,7 +246,6 @@ void DX12Device::submitAndPresent(SwapChain* swapchain) {
 
 void DX12Device::submitOffscreen() {
     auto& frame = m_frames[m_frameIndex];
-    frame->commandList()->Close();
 
     ID3D12CommandList* lists[] = { frame->commandList() };
     m_commandQueue->ExecuteCommandLists(1, lists);
