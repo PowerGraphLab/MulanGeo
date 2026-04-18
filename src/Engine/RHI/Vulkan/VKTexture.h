@@ -23,6 +23,9 @@ public:
     vk::ImageView view() const { return m_view; }
     vk::ImageViewCreateInfo viewForFramebuffer() const;
 
+    vk::ImageLayout currentLayout() const { return m_currentLayout; }
+    void setCurrentLayout(vk::ImageLayout layout) { m_currentLayout = layout; }
+
     static bool isDepthFormat(TextureFormat f);
 
 private:
@@ -32,6 +35,7 @@ private:
     vk::Image       m_image;
     VmaAllocation   m_allocation = nullptr;
     vk::ImageView   m_view;
+    vk::ImageLayout m_currentLayout = vk::ImageLayout::eUndefined;
 };
 
 } // namespace MulanGeo::Engine

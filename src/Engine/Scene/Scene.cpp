@@ -77,11 +77,20 @@ SceneNode* Scene::findByName(SceneNode* node, std::string_view name) {
 
 void Scene::updateWorldTransform(SceneNode* node, const Mat4& parentWorld) {
     if (!node) return;
-    auto newWorld = parentWorld * node->localTransform();
-    node->m_worldTransform = newWorld;
-    node->m_worldDirty = false;
+
+    // 仅在 dirty 时重新计算世界矩阵
+    if (node->m_worldDirty) {
+        node->m_worldTransform = parentWorld * node->localTransform();
+        node->m_worldDirty = false;
+
+        // 父节点变换改变时，级联标记所有子节点
+        for (auto& child : node->children()) {
+            child->m_worldDirty = true;
+        }
+    }
+
     for (auto& child : node->children()) {
-        updateWorldTransform(child.get(), newWorld);
+        updateWorldTransform(child.get(), node->m_worldTransform);
     }
 }
 

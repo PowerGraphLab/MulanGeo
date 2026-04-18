@@ -33,6 +33,12 @@ VKDevice::~VKDevice() {
     m_descriptorAllocator.reset();
     m_swapChains.clear();
 
+    // 销毁 per-image renderFinished 信号量
+    for (auto& sem : m_renderFinishedSemaphores) {
+        if (m_device && sem) m_device.destroySemaphore(sem);
+    }
+    m_renderFinishedSemaphores.clear();
+
     shutdown();
 }
 

@@ -56,6 +56,11 @@ public:
     void setWirePipeline(PipelineState* pso)  { m_wirePso = pso; }
     void setPickPipeline(PipelineState* pso)  { m_pickPso = pso; }
 
+    // --- UBO（外部注入）---
+    void setCameraBuffer(Buffer* buf)   { m_cameraBuffer = buf; }
+    void setObjectBuffer(Buffer* buf)   { m_objectBuffer = buf; }
+    void setMaterialBuffer(Buffer* buf) { m_materialBuffer = buf; }
+
     // --- 清理 GPU 缓存 ---
     void clearCache() { m_cache.clear(); }
 
@@ -78,6 +83,10 @@ private:
     PipelineState* m_solidPso = nullptr;
     PipelineState* m_wirePso  = nullptr;
     PipelineState* m_pickPso  = nullptr;
+
+    Buffer*        m_cameraBuffer  = nullptr;
+    Buffer*        m_objectBuffer  = nullptr;
+    Buffer*        m_materialBuffer = nullptr;
 };
 
 } // namespace MulanGeo::Engine

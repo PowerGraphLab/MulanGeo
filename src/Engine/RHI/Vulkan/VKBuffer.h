@@ -10,6 +10,8 @@
 #include "../Buffer.h"
 #include "VkConvert.h"
 
+#include <vector>
+
 namespace MulanGeo::Engine {
 
 class VKBuffer : public Buffer {
@@ -22,9 +24,9 @@ public:
     vk::Buffer vkBuffer() const { return m_buffer; }
     VmaAllocation allocation() const { return m_allocation; }
     void* mappedData() const { return m_mappedData; }
-    const void* pendingData() const { return m_pendingData; }
-    bool needsUpload() const { return m_pendingData != nullptr; }
-    void markUploaded() { m_pendingData = nullptr; }
+    const void* pendingData() const { return m_pendingData.data(); }
+    bool needsUpload() const { return !m_pendingData.empty(); }
+    void markUploaded() { m_pendingData.clear(); m_pendingData.shrink_to_fit(); }
 
     void update(uint32_t offset, uint32_t size, const void* data) override;
     bool readback(uint32_t offset, uint32_t size, void* outData) override;
@@ -35,7 +37,7 @@ private:
     vk::Buffer      m_buffer;
     VmaAllocation   m_allocation = nullptr;
     void*           m_mappedData  = nullptr;
-    const void*     m_pendingData = nullptr;
+    std::vector<uint8_t> m_pendingData;
 };
 
 } // namespace MulanGeo::Engine

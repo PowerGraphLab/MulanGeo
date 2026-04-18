@@ -8,23 +8,19 @@ SceneRenderer::SceneRenderer(RHIDevice* device)
 void SceneRenderer::render(const RenderQueue& queue, const Camera& camera, CommandList* cmdList) {
     m_stats = {};
 
-    // 1. 设置视口
+    // 1. 选择 PSO
+    PipelineState* pso = selectPipeline();
+    if (!pso) return;
+    cmdList->setPipelineState(pso);
+
+    // 2. 设置视口
     Viewport vp{0.0f, 0.0f,
                  static_cast<float>(camera.width()),
                  static_cast<float>(camera.height()),
                  0.0f, 1.0f};
     cmdList->setViewport(vp);
 
-    // 2. 清屏
-    cmdList->clearColor(0.15f, 0.15f, 0.15f, 1.0f);
-    cmdList->clearDepth(1.0f);
-
-    // 3. 选择 PSO
-    PipelineState* pso = selectPipeline();
-    if (!pso) return;
-    cmdList->setPipelineState(pso);
-
-    // 4. 遍历 RenderQueue 绘制
+    // 3. 遍历 RenderQueue 绘制（每个 drawItem 绑定 UBO）
     for (const auto& item : queue.items()) {
         drawItem(item, cmdList);
     }
@@ -53,6 +49,35 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
     const auto* gpu = m_cache.getOrUpload(geo);
 
     if (!gpu || !gpu->vertexBuffer) return;
+
+    // 更新 Object UBO（每 draw call 一次）
+    PipelineState* pso = selectPipeline();
+    if (m_objectBuffer && m_device && pso) {
+        // 将 double Mat4 转为 float，并写入 buffer
+        struct alignas(16) ObjUBO {
+            float world[16];
+            float normalMat[9];
+            float _pad1[3];
+            uint32_t pickId;
+            float _pad2[3];
+        };
+
+        ObjUBO obj{};
+        for (int i = 0; i < 16; ++i)
+            obj.world[i] = static_cast<float>(item.worldTransform.data()[i]);
+        // TODO: 计算 normalMat（世界矩阵的逆转置 3x3）
+        obj.normalMat[0] = 1.0f; obj.normalMat[4] = 1.0f; obj.normalMat[8] = 1.0f;
+        obj.pickId = item.pickId;
+        m_objectBuffer->update(0, sizeof(ObjUBO), &obj);
+
+        // 每次绘制绑定全部 3 个 UBO（descriptor set 是整体绑定的）
+        RHIDevice::UniformBufferBind uboBinds[] = {
+            { 0, m_cameraBuffer,   0, 0 },
+            { 1, m_objectBuffer,   0, 0 },
+            { 2, m_materialBuffer, 0, 0 },
+        };
+        m_device->bindUniformBuffers(cmdList, pso, uboBinds, 3);
+    }
 
     // 绑定顶点缓冲区
     cmdList->setVertexBuffer(0, gpu->vertexBuffer);

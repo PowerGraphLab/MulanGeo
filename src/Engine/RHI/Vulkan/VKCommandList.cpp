@@ -131,8 +131,8 @@ void VKCommandList::transitionResource(Texture* texture, ResourceState newState)
     barrier.subresourceRange.baseArrayLayer  = 0;
     barrier.subresourceRange.layerCount     = vkTex->desc().arraySize;
 
-    // 简化：oldLayout 用 undefined / general 由驱动处理
-    barrier.oldLayout    = vk::ImageLayout::eUndefined;
+    // 使用纹理跟踪的当前布局，避免丢弃已有内容
+    barrier.oldLayout    = vkTex->currentLayout();
     barrier.srcAccessMask = {};
 
     vk::PipelineStageFlags srcStage = vk::PipelineStageFlagBits::eAllCommands;
@@ -175,6 +175,9 @@ void VKCommandList::transitionResource(Texture* texture, ResourceState newState)
     }
 
     m_cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, nullptr, nullptr, barrier);
+
+    // 更新纹理的布局跟踪
+    vkTex->setCurrentLayout(barrier.newLayout);
 }
 
 void VKCommandList::copyTextureToBuffer(Texture* src, Buffer* dst) {

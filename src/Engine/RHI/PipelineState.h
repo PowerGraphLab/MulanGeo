@@ -30,6 +30,20 @@ struct InputLayoutElement {
 // 图形管线描述结构体
 // ============================================================
 
+struct DescriptorBinding {
+    uint32_t            binding     = 0;
+    uint32_t            count       = 1;
+    // 简化：当前只支持 UBO，未来扩展为 enum
+    // DescriptorType    type        = DescriptorType::UniformBuffer;
+
+    // Shader stage 位掩码（与 Vulkan vk::ShaderStageFlagBits 兼容）
+    static constexpr uint32_t kStageVertex   = 0x00000001;
+    static constexpr uint32_t kStageFragment = 0x00000010;
+    static constexpr uint32_t kStageAll      = 0x7FFFFFFF;
+
+    uint32_t            stages      = kStageAll;
+};
+
 struct GraphicsPipelineDesc {
     std::string_view name;
 
@@ -38,6 +52,11 @@ struct GraphicsPipelineDesc {
     Shader* ps = nullptr;   // Pixel / Fragment
     Shader* gs = nullptr;   // Geometry（可选）
     Shader* cs = nullptr;   // Compute（仅计算管线）
+
+    // Descriptor bindings — 描述着色器需要的资源绑定
+    static constexpr uint8_t kMaxDescriptorBindings = 16;
+    DescriptorBinding  descriptorBindings[kMaxDescriptorBindings] = {};
+    uint8_t            descriptorBindingCount = 0;
 
     // 输入布局 — 关联到 VertexLayout
     VertexLayout        vertexLayout;

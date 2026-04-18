@@ -56,7 +56,9 @@ VKBuffer::VKBuffer(const BufferDesc& desc, VmaAllocator allocator)
         memcpy(m_mappedData, desc.initData, desc.size);
     } else if (desc.initData) {
         // 不可映射的 immutable buffer 需要暂存缓冲区（后续由 VKDevice 处理）
-        m_pendingData = desc.initData;
+        // 拷贝数据到自有存储，避免悬挂指针
+        m_pendingData.resize(desc.size);
+        memcpy(m_pendingData.data(), desc.initData, desc.size);
     }
 }
 

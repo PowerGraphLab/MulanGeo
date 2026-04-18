@@ -40,12 +40,25 @@ void VKPipelineState::build(vk::RenderPass renderPass, uint32_t subpass) {
     // --- Descriptor Set Layout ---
     std::vector<vk::DescriptorSetLayoutBinding> bindings;
 
-    bindings.push_back({0, vk::DescriptorType::eUniformBuffer,
-                        1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment});
-    bindings.push_back({1, vk::DescriptorType::eUniformBuffer,
-                        1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment});
-    bindings.push_back({2, vk::DescriptorType::eUniformBuffer,
-                        1, vk::ShaderStageFlagBits::eFragment});
+    if (m_desc.descriptorBindingCount > 0) {
+        // 从 pipeline desc 中读取 descriptor bindings
+        for (uint8_t i = 0; i < m_desc.descriptorBindingCount; ++i) {
+            const auto& b = m_desc.descriptorBindings[i];
+            bindings.push_back({b.binding,
+                                b.count > 0 ? vk::DescriptorType::eUniformBuffer
+                                            : vk::DescriptorType::eUniformBuffer,
+                                b.count,
+                                static_cast<vk::ShaderStageFlags>(b.stages)});
+        }
+    } else {
+        // 向后兼容：无 descriptor 描述时使用默认 3 个 UBO
+        bindings.push_back({0, vk::DescriptorType::eUniformBuffer,
+                            1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment});
+        bindings.push_back({1, vk::DescriptorType::eUniformBuffer,
+                            1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment});
+        bindings.push_back({2, vk::DescriptorType::eUniformBuffer,
+                            1, vk::ShaderStageFlagBits::eFragment});
+    }
 
     vk::DescriptorSetLayoutCreateInfo dslCI;
     dslCI.bindingCount = static_cast<uint32_t>(bindings.size());

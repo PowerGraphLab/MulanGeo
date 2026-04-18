@@ -154,11 +154,34 @@ void RenderWidget::keyReleaseEvent(QKeyEvent* e) {
 // ============================================================
 
 void RenderWidget::loadMesh(const MulanGeo::IO::ImportResult& result) {
+    // 将 IO::ImportResult 转换为 Engine::LoadMeshData
+    LoadMeshData data;
+    data.sourceFile = result.sourceFile;
+    data.parts.reserve(result.meshes.size());
+    for (auto& mesh : result.meshes) {
+        LoadMeshData::Part part;
+        part.name = mesh.name;
+        part.indices = mesh.indices;
+        // P3N3UV2 交织
+        part.vertices.reserve(mesh.vertices.size() * 8);
+        for (auto& v : mesh.vertices) {
+            part.vertices.push_back(v.position.x);
+            part.vertices.push_back(v.position.y);
+            part.vertices.push_back(v.position.z);
+            part.vertices.push_back(v.normal.x);
+            part.vertices.push_back(v.normal.y);
+            part.vertices.push_back(v.normal.z);
+            part.vertices.push_back(v.texCoord.u);
+            part.vertices.push_back(v.texCoord.v);
+        }
+        data.parts.push_back(std::move(part));
+    }
+
     if (m_view.isInitialized()) {
-        m_view.loadMesh(result);
+        m_view.loadMesh(data);
         requestFrame();
     } else {
-        m_pendingMesh = result;
+        m_pendingMesh = std::move(data);
     }
 }
 

@@ -136,5 +136,41 @@ void MainWindow::dragEnterEvent(QDragEnterEvent* e) {
 void MainWindow::dropEvent(QDropEvent* e) {
     const auto urls = e->mimeData()->urls();
     if (urls.isEmpty()) return;
-    // TODO: trigger file open with urls[0].toLocalFile()
+
+    QString filePath = urls[0].toLocalFile();
+    if (filePath.isEmpty()) return;
+
+    // 复用 onOpenFile 的加载逻辑
+    statusBar()->showMessage("Loading: " + filePath);
+
+    using namespace MulanGeo::IO;
+    std::string ext = QFileInfo(filePath).suffix().toStdString();
+    auto importer = ImporterFactory::instance().create(ext);
+    if (!importer) {
+        QMessageBox::warning(this, "Error", QString("No importer for: .%1").arg(QString::fromStdString(ext)));
+        statusBar()->showMessage("Ready");
+        return;
+    }
+
+    ImportResult result = importer->importFile(filePath.toStdString());
+    if (!result.success) {
+        QMessageBox::warning(this, "Import Error", QString::fromStdString(result.error));
+        statusBar()->showMessage("Ready");
+        return;
+    }
+
+    int totalVerts = 0, totalTris = 0;
+    for (const auto& mesh : result.meshes) {
+        totalVerts += static_cast<int>(mesh.vertices.size());
+        totalTris  += static_cast<int>(mesh.indices.size() / 3);
+    }
+
+    showRenderView(result);
+
+    statusBar()->showMessage(
+        QString("Loaded: %1 | Meshes: %2 | Vertices: %3 | Triangles: %4")
+            .arg(QFileInfo(filePath).fileName())
+            .arg(result.meshes.size())
+            .arg(totalVerts)
+            .arg(totalTris));
 }

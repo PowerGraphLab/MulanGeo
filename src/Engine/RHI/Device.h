@@ -18,6 +18,7 @@
 #include "../Window.h"
 
 #include <cstdint>
+#include <memory>
 #include <string_view>
 #include <memory>
 
@@ -164,5 +165,26 @@ protected:
     RHIDevice(const RHIDevice&) = delete;
     RHIDevice& operator=(const RHIDevice&) = delete;
 };
+
+// ============================================================
+// RAII 资源指针 — 自动调用 device->destroy()
+// ============================================================
+
+struct DeviceResourceDeleter {
+    RHIDevice* device = nullptr;
+    template <typename T>
+    void operator()(T* ptr) const {
+        if (ptr && device) device->destroy(ptr);
+    }
+};
+
+template <typename T>
+using ResourcePtr = std::unique_ptr<T, DeviceResourceDeleter>;
+
+/// 创建 RAII 资源指针
+template <typename T>
+ResourcePtr<T> makeResource(T* raw, RHIDevice* device) {
+    return ResourcePtr<T>(raw, DeviceResourceDeleter{device});
+}
 
 } // namespace MulanGeo::Engine

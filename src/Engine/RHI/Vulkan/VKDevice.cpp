@@ -145,9 +145,6 @@ void VKDevice::beginFrame() {
     frame.waitForFence();
     frame.resetFence();
 
-    // 确保所有帧的 GPU 命令执行完毕再 reset descriptor pool
-    m_device.waitIdle();
-
     frame.resetCommandBuffer();
 
     m_descriptorAllocator->resetPools();

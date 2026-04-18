@@ -28,19 +28,32 @@
 #include "../Interaction/Operator.h"
 #include "../Interaction/CameraManipulator.h"
 #include "../Window.h"
+#include "SceneRenderer.h"
+#include "RenderGeometry.h"
 #include "../Math/Mat4.h"
 #include "../Math/Vec3.h"
 #include "../Math/AABB.h"
 
 #include <memory>
 #include <vector>
+#include <string>
 #include <cstdint>
 
-namespace MulanGeo::IO {
-struct ImportResult;
-}
-
 namespace MulanGeo::Engine {
+
+// ============================================================
+// 加载用网格数据（平台无关，与 IO 层解耦）
+// ============================================================
+
+struct LoadMeshData {
+    struct Part {
+        std::vector<float> vertices;   // P3N3UV2 交织
+        std::vector<uint32_t> indices;
+        std::string name;
+    };
+    std::vector<Part> parts;
+    std::string sourceFile;
+};
 
 // ============================================================
 // GPU UBO 结构 — 与 shader Common.hlsli 对齐
@@ -125,7 +138,7 @@ public:
     Operator* currentOperator() const { return m_operator.get(); }
 
     /// 获取离屏渲染目标（nullptr 表示非离屏模式）
-    RenderTarget* renderTarget() const { return m_renderTarget; }
+    RenderTarget* renderTarget() const { return m_renderTarget.get(); }
 
     // --- Camera ---
 
@@ -135,47 +148,46 @@ public:
     // --- 数据加载 ---
 
     /// 加载 mesh 数据到 GPU
-    void loadMesh(const MulanGeo::IO::ImportResult& result);
+    void loadMesh(const LoadMeshData& data);
 
 private:
     void loadShaders();
     void createPSOs();
     void createUBOs();
     void updateCameraUBO();
-    void drawMeshes();
+    void initSceneRenderer();
     void cleanup();
 
     // --- RHI 资源 ---
 
     std::unique_ptr<RHIDevice>  m_device;
-    SwapChain*                  m_swapchain     = nullptr;
-    RenderTarget*               m_renderTarget  = nullptr;
-    Buffer*                     m_stagingBuffer = nullptr;
+    ResourcePtr<SwapChain>      m_swapchain;
+    ResourcePtr<RenderTarget>   m_renderTarget;
+    ResourcePtr<Buffer>         m_stagingBuffer;
 
-    Shader*                     m_solidVs       = nullptr;
-    Shader*                     m_solidFs       = nullptr;
+    ResourcePtr<Shader>         m_solidVs;
+    ResourcePtr<Shader>         m_solidFs;
 
-    PipelineState*              m_solidPso      = nullptr;
+    ResourcePtr<PipelineState>  m_solidPso;
     VertexLayout                m_vertexLayout;
 
-    Buffer*                     m_cameraBuffer  = nullptr;
-    Buffer*                     m_objectBuffer  = nullptr;
-    Buffer*                     m_materialBuffer = nullptr;
+    ResourcePtr<Buffer>         m_cameraBuffer;
+    ResourcePtr<Buffer>         m_objectBuffer;
+    ResourcePtr<Buffer>         m_materialBuffer;
 
     // --- Camera & Interaction ---
 
     Camera                              m_camera;
     std::unique_ptr<Operator>           m_operator;
 
-    // --- GPU Mesh ---
+    // --- Renderer ---
+    std::unique_ptr<SceneRenderer>      m_sceneRenderer;
+    RenderQueue                         m_renderQueue;
+    std::vector<RenderGeometry>         m_geometries;    // 持有 RenderGeometry 数据
 
-    struct GpuMesh {
-        Buffer*  vertexBuffer = nullptr;
-        Buffer*  indexBuffer  = nullptr;
-        uint32_t vertexCount  = 0;
-        uint32_t indexCount   = 0;
-    };
-    std::vector<GpuMesh> m_gpuMeshes;
+    // 持有 mesh 原始数据（生命周期与 RenderGeometry 对齐）
+    std::vector<std::shared_ptr<void>>  m_meshVertexData;
+    std::vector<std::shared_ptr<void>>  m_meshIndexData;
 
     // --- 状态 ---
 

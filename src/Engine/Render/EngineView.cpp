@@ -7,8 +7,6 @@
 
 #include "EngineView.h"
 
-#include <MulanGeo/IO/MeshData.h>
-
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -53,6 +51,7 @@ bool EngineView::init(const NativeWindowHandle& window, int width, int height) {
 
     m_device = RHIDevice::create(ci);
     if (!m_device) return false;
+    auto* dev = m_device.get();
 
     // --- SwapChain ---
     SwapChainDesc scDesc;
@@ -62,7 +61,7 @@ bool EngineView::init(const NativeWindowHandle& window, int width, int height) {
     scDesc.bufferCount = 2;
     scDesc.vsync       = true;
 
-    m_swapchain = m_device->createSwapChain(scDesc);
+    m_swapchain = makeResource(dev->createSwapChain(scDesc), dev);
     if (!m_swapchain) { cleanup(); return false; }
 
     // --- Graphics Resources ---
@@ -75,6 +74,9 @@ bool EngineView::init(const NativeWindowHandle& window, int width, int height) {
     // --- Camera ---
     m_camera.setViewport(width, height);
     m_camera.fitToBox(AABB(Vec3(-1, -1, -1), Vec3(1, 1, 1)));
+
+    // --- Scene Renderer ---
+    initSceneRenderer();
 
     m_initialized = true;
     return true;
@@ -105,6 +107,7 @@ bool EngineView::initOffscreen(int width, int height) {
 
     m_device = RHIDevice::create(ci);
     if (!m_device) return false;
+    auto* dev = m_device.get();
 
     // --- RenderTarget ---
     RenderTargetDesc rtDesc;
@@ -114,13 +117,13 @@ bool EngineView::initOffscreen(int width, int height) {
     rtDesc.depthFormat = TextureFormat::D24_UNorm_S8_UInt;
     rtDesc.hasDepth    = true;
 
-    m_renderTarget = m_device->createRenderTarget(rtDesc);
+    m_renderTarget = makeResource(dev->createRenderTarget(rtDesc), dev);
     if (!m_renderTarget) { cleanup(); return false; }
 
     // --- Staging buffer（用于 readback）---
     uint32_t pixelBytes = static_cast<uint32_t>(width) * height * 4;
-    m_stagingBuffer = m_device->createBuffer(
-        BufferDesc::staging(pixelBytes, "ReadbackStaging"));
+    m_stagingBuffer = makeResource(dev->createBuffer(
+        BufferDesc::staging(pixelBytes, "ReadbackStaging")), dev);
 
     // --- Graphics Resources ---
     loadShaders();
@@ -132,6 +135,9 @@ bool EngineView::initOffscreen(int width, int height) {
     // --- Camera ---
     m_camera.setViewport(width, height);
     m_camera.fitToBox(AABB(Vec3(-1, -1, -1), Vec3(1, 1, 1)));
+
+    // --- Scene Renderer ---
+    initSceneRenderer();
 
     m_initialized = true;
     return true;
@@ -148,19 +154,20 @@ void EngineView::resize(int width, int height) {
 
     m_device->waitIdle();
 
+    auto* dev = m_device.get();
     if (m_renderTarget) {
         m_renderTarget->resize(width, height);
 
         // 重建 staging buffer
-        if (m_stagingBuffer) m_device->destroy(m_stagingBuffer);
+        m_stagingBuffer.reset();
         uint32_t pixelBytes = static_cast<uint32_t>(width) * height * 4;
-        m_stagingBuffer = m_device->createBuffer(
-            BufferDesc::staging(pixelBytes, "ReadbackStaging"));
+        m_stagingBuffer = makeResource(dev->createBuffer(
+            BufferDesc::staging(pixelBytes, "ReadbackStaging")), dev);
 
-        if (m_solidPso) m_solidPso->finalize(m_renderTarget);
+        if (m_solidPso) m_solidPso->finalize(m_renderTarget.get());
     } else {
         m_swapchain->resize(width, height);
-        if (m_solidPso) m_solidPso->finalize(m_swapchain);
+        if (m_solidPso) m_solidPso->finalize(m_swapchain.get());
     }
     m_camera.setViewport(width, height);
 }
@@ -200,13 +207,13 @@ void EngineView::loadShaders() {
     vsDesc.type         = ShaderType::Vertex;
     vsDesc.byteCode     = solidVsData.data();
     vsDesc.byteCodeSize = static_cast<uint32_t>(solidVsData.size());
-    m_solidVs = m_device->createShader(vsDesc);
+    m_solidVs = makeResource(m_device->createShader(vsDesc), m_device.get());
 
     ShaderDesc fsDesc;
     fsDesc.type         = ShaderType::Pixel;
     fsDesc.byteCode     = solidFsData.data();
     fsDesc.byteCodeSize = static_cast<uint32_t>(solidFsData.size());
-    m_solidFs = m_device->createShader(fsDesc);
+    m_solidFs = makeResource(m_device->createShader(fsDesc), m_device.get());
 }
 
 // ============================================================
@@ -221,8 +228,8 @@ void EngineView::createPSOs() {
 
     GraphicsPipelineDesc solidDesc;
     solidDesc.name                  = "Solid";
-    solidDesc.vs                    = m_solidVs;
-    solidDesc.ps                    = m_solidFs;
+    solidDesc.vs                    = m_solidVs.get();
+    solidDesc.ps                    = m_solidFs.get();
     solidDesc.vertexLayout          = m_vertexLayout;
     solidDesc.topology              = PrimitiveTopology::TriangleList;
     solidDesc.cullMode              = CullMode::Back;
@@ -232,11 +239,18 @@ void EngineView::createPSOs() {
     solidDesc.depthStencil.depthWrite  = true;
     solidDesc.depthStencil.depthFunc   = CompareFunc::LessEqual;
 
-    m_solidPso = m_device->createPipelineState(solidDesc);
+    // Descriptor bindings: set 0 = Camera, 1 = Object, 2 = Material
+    using DB = DescriptorBinding;
+    solidDesc.descriptorBindings[0] = {0, 1, DB::kStageVertex | DB::kStageFragment};
+    solidDesc.descriptorBindings[1] = {1, 1, DB::kStageVertex | DB::kStageFragment};
+    solidDesc.descriptorBindings[2] = {2, 1, DB::kStageFragment};
+    solidDesc.descriptorBindingCount = 3;
+
+    m_solidPso = makeResource(m_device->createPipelineState(solidDesc), m_device.get());
     if (m_renderTarget) {
-        m_solidPso->finalize(m_renderTarget);
+        m_solidPso->finalize(m_renderTarget.get());
     } else {
-        m_solidPso->finalize(m_swapchain);
+        m_solidPso->finalize(m_swapchain.get());
     }
 }
 
@@ -245,14 +259,15 @@ void EngineView::createPSOs() {
 // ============================================================
 
 void EngineView::createUBOs() {
-    m_cameraBuffer = m_device->createBuffer(
-        BufferDesc::uniform(sizeof(CameraUBO), "CameraUBO"));
+    auto* dev = m_device.get();
+    m_cameraBuffer = makeResource(dev->createBuffer(
+        BufferDesc::uniform(sizeof(CameraUBO), "CameraUBO")), dev);
 
-    m_objectBuffer = m_device->createBuffer(
-        BufferDesc::uniform(sizeof(ObjectUBO), "ObjectUBO"));
+    m_objectBuffer = makeResource(dev->createBuffer(
+        BufferDesc::uniform(sizeof(ObjectUBO), "ObjectUBO")), dev);
 
-    m_materialBuffer = m_device->createBuffer(
-        BufferDesc::uniform(sizeof(LightMaterialUBO), "MaterialUBO"));
+    m_materialBuffer = makeResource(dev->createBuffer(
+        BufferDesc::uniform(sizeof(LightMaterialUBO), "MaterialUBO")), dev);
 
     LightMaterialUBO mat{};
     mat.baseColor[0] = 0.85f; mat.baseColor[1] = 0.85f; mat.baseColor[2] = 0.88f;
@@ -283,14 +298,7 @@ void EngineView::renderFrame() {
         m_swapchain->beginRenderPass(cmd);
     }
 
-    cmd->setPipelineState(m_solidPso);
-
-    RHIDevice::UniformBufferBind uboBinds[] = {
-        { 0, m_cameraBuffer,   0, sizeof(CameraUBO) },
-        { 1, m_objectBuffer,   0, sizeof(ObjectUBO) },
-        { 2, m_materialBuffer, 0, sizeof(LightMaterialUBO) },
-    };
-    m_device->bindUniformBuffers(cmd, m_solidPso, uboBinds, 3);
+    cmd->setPipelineState(m_solidPso.get());
 
     Viewport vp;
     vp.x       = 0.0f;
@@ -308,7 +316,8 @@ void EngineView::renderFrame() {
     sc.height = static_cast<int32_t>(m_height);
     cmd->setScissorRect(sc);
 
-    drawMeshes();
+    // 委托给 SceneRenderer 绘制
+    m_sceneRenderer->render(m_renderQueue, m_camera, cmd);
 
     // --- end render pass ---
     if (m_renderTarget) {
@@ -323,7 +332,7 @@ void EngineView::renderFrame() {
     if (m_renderTarget) {
         m_device->submitOffscreen();
     } else {
-        m_device->submitAndPresent(m_swapchain);
+        m_device->submitAndPresent(m_swapchain.get());
     }
 }
 
@@ -340,7 +349,7 @@ bool EngineView::readbackPixels(std::vector<uint8_t>& pixels) {
     auto* cmd = m_device->createCommandList();
     cmd->begin();
     cmd->transitionResource(m_renderTarget->colorTexture(), ResourceState::CopySrc);
-    cmd->copyTextureToBuffer(m_renderTarget->colorTexture(), m_stagingBuffer);
+    cmd->copyTextureToBuffer(m_renderTarget->colorTexture(), m_stagingBuffer.get());
     cmd->end();
 
     m_device->executeCommandList(cmd);
@@ -351,6 +360,18 @@ bool EngineView::readbackPixels(std::vector<uint8_t>& pixels) {
     uint32_t byteSize = static_cast<uint32_t>(m_width) * m_height * 4;
     pixels.resize(byteSize);
     return m_stagingBuffer->readback(0, byteSize, pixels.data());
+}
+
+// ============================================================
+// Scene Renderer 初始化
+// ============================================================
+
+void EngineView::initSceneRenderer() {
+    m_sceneRenderer = std::make_unique<SceneRenderer>(m_device.get());
+    m_sceneRenderer->setSolidPipeline(m_solidPso.get());
+    m_sceneRenderer->setCameraBuffer(m_cameraBuffer.get());
+    m_sceneRenderer->setObjectBuffer(m_objectBuffer.get());
+    m_sceneRenderer->setMaterialBuffer(m_materialBuffer.get());
 }
 
 // ============================================================
@@ -383,32 +404,6 @@ void EngineView::updateCameraUBO() {
 }
 
 // ============================================================
-// 绘制
-// ============================================================
-
-void EngineView::drawMeshes() {
-    auto* cmd = m_device->frameCommandList();
-
-    for (auto& mesh : m_gpuMeshes) {
-        if (!mesh.vertexBuffer || mesh.indexCount == 0) continue;
-
-        ObjectUBO obj{};
-        obj.world[0] = 1.0f; obj.world[5] = 1.0f;
-        obj.world[10] = 1.0f; obj.world[15] = 1.0f;
-        obj.normalMat[0] = 1.0f; obj.normalMat[4] = 1.0f; obj.normalMat[8] = 1.0f;
-        m_objectBuffer->update(0, sizeof(ObjectUBO), &obj);
-
-        cmd->setVertexBuffer(0, mesh.vertexBuffer);
-        if (mesh.indexBuffer) {
-            cmd->setIndexBuffer(mesh.indexBuffer);
-            cmd->drawIndexed(DrawIndexedAttribs(mesh.indexCount));
-        } else {
-            cmd->draw(DrawAttribs(mesh.vertexCount));
-        }
-    }
-}
-
-// ============================================================
 // 输入处理
 // ============================================================
 
@@ -434,47 +429,36 @@ void EngineView::setOperator(std::unique_ptr<Operator> op) {
 // Mesh 加载
 // ============================================================
 
-void EngineView::loadMesh(const MulanGeo::IO::ImportResult& result) {
-    // 清除旧 GPU 数据
-    for (auto& mesh : m_gpuMeshes) {
-        if (mesh.vertexBuffer) m_device->destroy(mesh.vertexBuffer);
-        if (mesh.indexBuffer)  m_device->destroy(mesh.indexBuffer);
-    }
-    m_gpuMeshes.clear();
+void EngineView::loadMesh(const LoadMeshData& data) {
+    // 清除旧数据
+    m_geometries.clear();
+    m_renderQueue.clear();
+    m_sceneRenderer->clearCache();
 
-    for (const auto& src : result.meshes) {
-        GpuMesh gpu{};
+    for (const auto& src : data.parts) {
+        RenderGeometry geo{};
+        geo.vertexCount  = static_cast<uint32_t>(src.vertices.size() / 8); // P3N3UV2 = 8 floats
+        geo.indexCount   = static_cast<uint32_t>(src.indices.size());
+        geo.vertexStride = sizeof(float) * 8;
+        geo.topology     = PrimitiveTopology::TriangleList;
 
-        struct VertP3N3UV2 {
-            float px, py, pz;
-            float nx, ny, nz;
-            float u, v;
-        };
+        // 持有顶点数据
+        auto vertexBytes = std::make_shared<std::vector<float>>(src.vertices);
+        auto indexBytes  = std::make_shared<std::vector<uint32_t>>(src.indices);
 
-        std::vector<VertP3N3UV2> vertices(src.vertices.size());
-        for (size_t i = 0; i < src.vertices.size(); ++i) {
-            vertices[i] = {
-                src.vertices[i].position.x, src.vertices[i].position.y, src.vertices[i].position.z,
-                src.vertices[i].normal.x,   src.vertices[i].normal.y,   src.vertices[i].normal.z,
-                src.vertices[i].texCoord.u,  src.vertices[i].texCoord.v
-            };
-        }
+        m_meshVertexData.push_back(vertexBytes);
+        m_meshIndexData.push_back(indexBytes);
 
-        if (!vertices.empty()) {
-            uint32_t vbSize = static_cast<uint32_t>(vertices.size() * sizeof(VertP3N3UV2));
-            auto vbd = BufferDesc::vertex(vbSize, vertices.data(), "VB");
-            gpu.vertexBuffer = m_device->createBuffer(vbd);
-            gpu.vertexCount  = static_cast<uint32_t>(vertices.size());
-        }
+        geo.vertexBytes = std::as_bytes(std::span{*vertexBytes});
+        geo.indexBytes  = std::as_bytes(std::span{*indexBytes});
 
-        if (!src.indices.empty()) {
-            uint32_t ibSize = static_cast<uint32_t>(src.indices.size() * sizeof(uint32_t));
-            auto ibd = BufferDesc::index(ibSize, src.indices.data(), "IB");
-            gpu.indexBuffer = m_device->createBuffer(ibd);
-            gpu.indexCount  = static_cast<uint32_t>(src.indices.size());
-        }
+        m_geometries.push_back(geo);
 
-        m_gpuMeshes.push_back(gpu);
+        RenderItem item;
+        item.geometry = &m_geometries.back();
+        item.worldTransform = Mat4::identity();
+        item.pickId = 0;
+        m_renderQueue.add(item);
     }
 }
 
@@ -483,33 +467,22 @@ void EngineView::loadMesh(const MulanGeo::IO::ImportResult& result) {
 // ============================================================
 
 void EngineView::cleanup() {
-    for (auto& mesh : m_gpuMeshes) {
-        if (mesh.vertexBuffer) m_device->destroy(mesh.vertexBuffer);
-        if (mesh.indexBuffer)  m_device->destroy(mesh.indexBuffer);
-    }
-    m_gpuMeshes.clear();
+    m_geometries.clear();
+    m_renderQueue.clear();
+    m_meshVertexData.clear();
+    m_meshIndexData.clear();
+    m_sceneRenderer.reset();
 
-    if (m_device) {
-        if (m_solidVs)        m_device->destroy(m_solidVs);
-        if (m_solidFs)        m_device->destroy(m_solidFs);
-        if (m_solidPso)       m_device->destroy(m_solidPso);
-        if (m_cameraBuffer)   m_device->destroy(m_cameraBuffer);
-        if (m_objectBuffer)   m_device->destroy(m_objectBuffer);
-        if (m_materialBuffer) m_device->destroy(m_materialBuffer);
-        if (m_stagingBuffer)  m_device->destroy(m_stagingBuffer);
-        if (m_renderTarget)   m_device->destroy(m_renderTarget);
-        if (m_swapchain)      m_device->destroy(m_swapchain);
-    }
-
-    m_solidVs       = nullptr;
-    m_solidFs       = nullptr;
-    m_solidPso      = nullptr;
-    m_cameraBuffer  = nullptr;
-    m_objectBuffer  = nullptr;
-    m_materialBuffer = nullptr;
-    m_stagingBuffer = nullptr;
-    m_renderTarget  = nullptr;
-    m_swapchain     = nullptr;
+    // RAII 资源自动销毁（reset 按逆序）
+    m_materialBuffer.reset();
+    m_objectBuffer.reset();
+    m_cameraBuffer.reset();
+    m_solidPso.reset();
+    m_solidFs.reset();
+    m_solidVs.reset();
+    m_stagingBuffer.reset();
+    m_renderTarget.reset();
+    m_swapchain.reset();
 }
 
 void EngineView::shutdown() {
