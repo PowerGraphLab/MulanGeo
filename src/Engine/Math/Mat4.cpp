@@ -112,11 +112,11 @@ Mat4 Mat4::perspective(double fovY, double aspect, double nearZ, double farZ) {
     double range   = farZ - nearZ;
 
     Mat4 r;
-    r.m[0][0] =  1.0 / (aspect * tanHalf);
-    r.m[1][1] = -1.0 / tanHalf;              // Vulkan Y 翻转
-    r.m[2][2] = -farZ / range;               // Vulkan z∈[0,1]
+    r.m[0][0] = 1.0 / (aspect * tanHalf);
+    r.m[1][1] = 1.0 / tanHalf;
+    r.m[2][2] = -(farZ + nearZ) / range;
     r.m[2][3] = -1.0;
-    r.m[3][2] = -(farZ * nearZ) / range;     // Vulkan z∈[0,1]
+    r.m[3][2] = -(2.0 * farZ * nearZ) / range;
     r.m[3][3] = 0.0;
     return r;
 }
@@ -129,11 +129,11 @@ Mat4 Mat4::ortho(double left, double right, double bottom, double top,
 
     Mat4 r;
     r.m[0][0] =  2.0 / rl;
-    r.m[1][1] = -2.0 / tb;                    // Vulkan Y 翻转
-    r.m[2][2] = -1.0 / fn;                    // Vulkan z∈[0,1]
+    r.m[1][1] =  2.0 / tb;
+    r.m[2][2] = -2.0 / fn;
     r.m[3][0] = -(right + left) / rl;
     r.m[3][1] = -(top + bottom) / tb;
-    r.m[3][2] = -nearZ / fn;                  // Vulkan z∈[0,1]
+    r.m[3][2] = -(farZ + nearZ) / fn;
     return r;
 }
 

@@ -47,6 +47,7 @@ public:
     GraphicsBackend backend() const override;
     const DeviceCapabilities& capabilities() const override;
     const RenderConfig& renderConfig() const override;
+    Mat4 clipSpaceCorrectionMatrix() const override;
 
     // --- 资源创建 ---
     Buffer*         createBuffer(const BufferDesc& desc) override;

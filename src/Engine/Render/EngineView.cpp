@@ -381,9 +381,13 @@ void EngineView::initSceneRenderer() {
 void EngineView::updateCameraUBO() {
     CameraUBO ubo{};
 
-    auto viewProj = m_camera.viewProjectionMatrix();
     auto view     = m_camera.viewMatrix();
     auto proj     = m_camera.projectionMatrix();
+
+    // 应用后端裁剪空间修正（Vulkan: Y↓ z∈[0,1]，OpenGL: 无修正）
+    auto clip     = m_device->clipSpaceCorrectionMatrix();
+    auto corrProj = clip * proj;
+    auto viewProj = corrProj * view;
 
     // Mat4 内部是 double，UBO 需要 float，逐元素转换
     auto storeMat4 = [](float* dst, const Mat4& src) {
@@ -392,7 +396,7 @@ void EngineView::updateCameraUBO() {
     };
 
     storeMat4(ubo.view,           view);
-    storeMat4(ubo.projection,     proj);
+    storeMat4(ubo.projection,     corrProj);
     storeMat4(ubo.viewProjection, viewProj);
 
     auto pos = m_camera.eyePosition();

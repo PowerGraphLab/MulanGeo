@@ -65,6 +65,10 @@ public:
         return m_renderConfig;
     }
 
+    Mat4 clipSpaceCorrectionMatrix() const override {
+        return Mat4::identity();  // OpenGL: 标准右手坐标，无需修正
+    }
+
     // --- 资源创建（桩实现，后续补全）---
 
     Buffer*        createBuffer(const BufferDesc& desc) override;

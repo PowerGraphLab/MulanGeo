@@ -15,6 +15,7 @@
 #include "Shader.h"
 #include "SwapChain.h"
 #include "Texture.h"
+#include "../Math/Mat4.h"
 #include "../Window.h"
 
 #include <cstdint>
@@ -79,6 +80,14 @@ public:
     virtual GraphicsBackend backend() const = 0;
     virtual const DeviceCapabilities& capabilities() const = 0;
     virtual const RenderConfig& renderConfig() const = 0;
+
+    // --- 裁剪空间修正 ---
+    // 各后端 NDC 约定不同（Vulkan: Y↓ z∈[0,1]，OpenGL: Y↑ z∈[-1,1]）。
+    // Camera / Mat4 统一生成标准右手坐标（Y↑ z∈[-1,1]），
+    // 由后端提供修正矩阵：finalProj = clipCorrection * projection。
+    // 上层无需关心后端差异。
+
+    virtual Mat4 clipSpaceCorrectionMatrix() const = 0;
 
     // --- 资源创建 ---
 
