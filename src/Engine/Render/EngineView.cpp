@@ -364,9 +364,15 @@ void EngineView::updateCameraUBO() {
     auto view     = m_camera.viewMatrix();
     auto proj     = m_camera.projectionMatrix();
 
-    memcpy(ubo.view,           view.data(),     64);
-    memcpy(ubo.projection,     proj.data(),     64);
-    memcpy(ubo.viewProjection, viewProj.data(), 64);
+    // Mat4 内部是 double，UBO 需要 float，逐元素转换
+    auto storeMat4 = [](float* dst, const Mat4& src) {
+        for (int i = 0; i < 16; ++i)
+            dst[i] = static_cast<float>(src.data()[i]);
+    };
+
+    storeMat4(ubo.view,           view);
+    storeMat4(ubo.projection,     proj);
+    storeMat4(ubo.viewProjection, viewProj);
 
     auto pos = m_camera.eyePosition();
     ubo.cameraPos[0] = static_cast<float>(pos.x);
