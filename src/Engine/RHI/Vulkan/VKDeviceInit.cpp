@@ -30,7 +30,7 @@ VKDevice::~VKDevice() {
 
     m_frameContexts.clear();
     m_uploadContext.reset();
-    m_descriptorAllocator.reset();
+    m_descriptorAllocators.clear();
     m_swapChains.clear();
 
     // 销毁 per-image renderFinished 信号量
@@ -281,7 +281,10 @@ void VKDevice::init(const CreateInfo& ci) {
     m_uploadContext = std::make_unique<VKUploadContext>(
         m_device, m_allocator, m_graphicsQueueFamily, m_graphicsQueue);
 
-    m_descriptorAllocator = std::make_unique<VKDescriptorAllocator>(m_device);
+    // per-frame descriptor allocators (will be properly sized in initFrameContexts)
+    m_descriptorAllocators.clear();
+    m_descriptorAllocators.push_back(std::make_unique<VKDescriptorAllocator>(m_device));
+    m_descriptorAllocators.push_back(std::make_unique<VKDescriptorAllocator>(m_device));
 
     // FrameContext 在 createSwapChain 时初始化（需要知道 swapchain image count）
 }

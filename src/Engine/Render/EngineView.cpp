@@ -433,8 +433,19 @@ void EngineView::loadMesh(const LoadMeshData& data) {
     // 清除旧数据
     m_geometries.clear();
     m_renderQueue.clear();
+    m_meshVertexData.clear();
+    m_meshIndexData.clear();
     m_sceneRenderer->clearCache();
 
+    const size_t partCount = data.parts.size();
+    m_geometries.reserve(partCount);
+    m_meshVertexData.reserve(partCount);
+    m_meshIndexData.reserve(partCount);
+
+    // 计算模型包围盒
+    AABB modelBounds;
+
+    // 第一遍：构建全部 geometry（避免 vector 重分配导致指针失效）
     for (const auto& src : data.parts) {
         RenderGeometry geo{};
         geo.vertexCount  = static_cast<uint32_t>(src.vertices.size() / 8); // P3N3UV2 = 8 floats
@@ -454,11 +465,25 @@ void EngineView::loadMesh(const LoadMeshData& data) {
 
         m_geometries.push_back(geo);
 
+        // 遍历顶点累积包围盒（P3N3UV2 布局，每8个float取前3个）
+        for (uint32_t i = 0; i < geo.vertexCount; ++i) {
+            const float* v = src.vertices.data() + i * 8;
+            modelBounds.expand(Vec3(v[0], v[1], v[2]));
+        }
+    }
+
+    // 第二遍：构建 RenderItem（此时 m_geometries 不再重分配）
+    for (size_t i = 0; i < m_geometries.size(); ++i) {
         RenderItem item;
-        item.geometry = &m_geometries.back();
+        item.geometry = &m_geometries[i];
         item.worldTransform = Mat4::identity();
-        item.pickId = 0;
+        item.pickId = static_cast<uint32_t>(i);
         m_renderQueue.add(item);
+    }
+
+    // 适配相机到模型
+    if (!modelBounds.isEmpty()) {
+        m_camera.fitToBox(modelBounds);
     }
 }
 

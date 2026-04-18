@@ -92,7 +92,7 @@ public:
     VmaAllocator         vmaAllocator()        const { return m_allocator; }
 
     VKUploadContext&       uploadContext()       { return *m_uploadContext; }
-    VKDescriptorAllocator& descriptorAllocator() { return *m_descriptorAllocator; }
+    VKDescriptorAllocator& descriptorAllocator() { return *m_descriptorAllocators[m_currentFrame]; }
     VKFrameContext&        currentFrameContext() { return *m_frameContexts[m_currentFrame]; }
     uint32_t               currentFrameIndex()   const { return m_currentFrame; }
 
@@ -124,7 +124,7 @@ private:
     // --- 私有组件 ---
     std::unique_ptr<VKUploadContext>             m_uploadContext;
     std::vector<std::unique_ptr<VKFrameContext>> m_frameContexts;
-    std::unique_ptr<VKDescriptorAllocator>       m_descriptorAllocator;
+    std::vector<std::unique_ptr<VKDescriptorAllocator>> m_descriptorAllocators; // per-frame
     std::unique_ptr<VKCommandList>               m_frameCmdList;
 
     uint32_t                    m_frameCount   = 2;

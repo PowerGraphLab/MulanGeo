@@ -27,8 +27,6 @@ public:
         MouseButton panButton   = MouseButton::Middle;
         MouseButton panAltButton = MouseButton::Right;   ///< 可选的第二平移按钮
 
-        double orbitSpeed   = 0.005;
-        double panSpeed     = 0.002;
         double zoomFactor   = 0.1;     ///< 每滚轮档位缩放百分比
         double minDistance   = 0.001;
     };
@@ -62,14 +60,13 @@ public:
 
         // --- 轨道旋转 ---
         if (e.isButtonPressed(config.orbitButton)) {
-            cam.orbit(dx * config.orbitSpeed, dy * config.orbitSpeed);
+            cam.orbit(static_cast<double>(dx), static_cast<double>(dy));
             return true;
         }
 
         // --- 平移（中键 或 右键） ---
         if (e.isButtonPressed(config.panButton) || e.isButtonPressed(config.panAltButton)) {
-            double speedScale = cam.distance() * config.panSpeed;
-            cam.pan(dx * speedScale, -dy * speedScale);
+            cam.pan(static_cast<double>(dx), static_cast<double>(-dy));
             return true;
         }
 

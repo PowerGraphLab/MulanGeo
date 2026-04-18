@@ -14,7 +14,7 @@ void Camera::setRotation(double theta, double phi) {
 
 void Camera::orbit(double dx, double dy) {
     m_theta -= dx * m_orbitSpeed;
-    m_phi   += dy * m_orbitSpeed;
+    m_phi   -= dy * m_orbitSpeed;
     clampPhi();
 }
 
@@ -22,8 +22,8 @@ void Camera::pan(double dx, double dy) {
     Vec3 right = computeRight();
     Vec3 up    = computeUp();
     double scale = m_distance * m_panSpeed;
-    m_target = m_target - right * dx * scale;
-    m_target = m_target + up * dy * scale;
+    m_target = m_target - right * (dx * scale);
+    m_target = m_target + up    * (dy * scale);
 }
 
 void Camera::zoom(double delta) {

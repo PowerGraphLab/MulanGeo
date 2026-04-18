@@ -147,7 +147,7 @@ void VKDevice::beginFrame() {
 
     frame.resetCommandBuffer();
 
-    m_descriptorAllocator->resetPools();
+    m_descriptorAllocators[m_currentFrame]->resetPools();
 
     m_frameCmdList = std::make_unique<VKCommandList>(frame.cmdBuffer());
 
@@ -214,12 +214,12 @@ void VKDevice::bindUniformBuffers(CommandList* cmd, PipelineState* pso,
     auto* vkPso  = static_cast<VKPipelineState*>(pso);
     auto* vkCmd  = static_cast<VKCommandList*>(cmd);
 
-    vk::DescriptorSet descSet = m_descriptorAllocator->allocate(
+    vk::DescriptorSet descSet = m_descriptorAllocators[m_currentFrame]->allocate(
         vkPso->descriptorSetLayout());
 
     for (uint32_t i = 0; i < count; ++i) {
         auto* vkBuf = static_cast<VKBuffer*>(binds[i].buffer);
-        m_descriptorAllocator->bindUniformBuffer(
+        m_descriptorAllocators[m_currentFrame]->bindUniformBuffer(
             descSet, binds[i].binding,
             vkBuf->vkBuffer(), binds[i].offset, binds[i].size);
     }
@@ -238,6 +238,14 @@ void VKDevice::initFrameContexts(uint32_t count) {
         m_frameContexts.push_back(
             std::make_unique<VKFrameContext>(m_device, m_graphicsQueueFamily));
     }
+
+    // 同步 per-frame descriptor allocator 数量
+    m_descriptorAllocators.clear();
+    for (uint32_t i = 0; i < count; ++i) {
+        m_descriptorAllocators.push_back(
+            std::make_unique<VKDescriptorAllocator>(m_device));
+    }
+
     m_currentFrame = 0;
     m_frameCmdList = std::make_unique<VKCommandList>(
         currentFrameContext().cmdBuffer());
