@@ -67,9 +67,8 @@ void Camera::orbitToPoint(int x, int y) {
     if (!m_arcballActive) return;
 
     Vec3 curr = arcballProject(x, y);
-    double dot = glm::dot(m_arcballPrev, curr);
 
-    // 旋转轴 = prev × curr（屏幕空间叉积）
+    // 屏幕空间叉积 → 旋转轴
     Vec3 axis = glm::cross(m_arcballPrev, curr);
     double axisLen = glm::length(axis);
 
@@ -78,11 +77,10 @@ void Camera::orbitToPoint(int x, int y) {
         return;
     }
 
-    // 旋转角度 = acos(clamp(dot))，乘以速度因子
-    double angle = std::acos(std::clamp(dot, -1.0, 1.0)) * m_orbitSpeed * 200.0;
+    // 旋转角度 = 叉积的模长（等价于 sin(angle)，对于小角度足够精确）
+    double angle = axisLen * m_orbitSpeed * 350.0;
 
-    // axis 在屏幕空间（相机空间），转到世界空间：
-    // screen X → camRight, screen Y → camUp, screen Z → camForward
+    // 屏幕空间轴 → 世界空间：screen X=camRight, Y=camUp, Z=camForward
     Vec3 camRight = trackballRight();
     Vec3 camUp    = trackballUp();
     Vec3 camFwd   = trackballForward();
