@@ -35,7 +35,71 @@ void Camera::setYawPitch(double yaw, double pitch) {
     m_pitch = std::clamp(pitch, kMinPitch, kMaxPitch);
 }
 
-void Camera::orbit(double dx, double dy) {
+// ============================================================
+// Arcball 虚拟球面投影
+// ============================================================
+
+Vec3 Camera::arcballProject(int x, int y) const {
+    // 将屏幕坐标映射到 [-1, 1] NDC，Y 翻转（屏幕 Y 向下，NDC Y 向上）
+    double nx = (2.0 * x - m_width)  / m_width;
+    double ny = (m_height - 2.0 * y) / m_height;
+
+    // 投影到虚拟球面（半径 1）
+    double len2 = nx * nx + ny * ny;
+    double nz;
+    if (len2 <= 1.0) {
+        nz = std::sqrt(1.0 - len2);      // 球内：球面投影
+    } else {
+        double len = std::sqrt(len2);
+        nx /= len;
+        ny /= len;
+        nz = 0.0;                          // 球外：投影到赤道
+    }
+    return Vec3{nx, ny, nz};
+}
+
+void Camera::beginOrbit(int x, int y) {
+    m_arcballPrev = arcballProject(x, y);
+    m_arcballActive = true;
+}
+
+void Camera::orbitToPoint(int x, int y) {
+    if (!m_arcballActive) return;
+
+    Vec3 curr = arcballProject(x, y);
+    double dot = glm::dot(m_arcballPrev, curr);
+
+    // 旋转轴 = prev × curr（屏幕空间叉积）
+    Vec3 axis = glm::cross(m_arcballPrev, curr);
+    double axisLen = glm::length(axis);
+
+    if (axisLen < 1e-10) {
+        m_arcballPrev = curr;
+        return;
+    }
+
+    // 旋转角度 = acos(clamp(dot))，乘以速度因子
+    double angle = std::acos(std::clamp(dot, -1.0, 1.0)) * m_orbitSpeed * 200.0;
+
+    // axis 在屏幕空间（相机空间），转到世界空间：
+    // screen X → camRight, screen Y → camUp, screen Z → camForward
+    Vec3 camRight = trackballRight();
+    Vec3 camUp    = trackballUp();
+    Vec3 camFwd   = trackballForward();
+    Vec3 worldAxis = camRight * axis.x + camUp * axis.y + camFwd * axis.z;
+    worldAxis = glm::normalize(worldAxis);
+
+    Quat deltaQ = glm::angleAxis(angle, worldAxis);
+    m_rotation = glm::normalize(deltaQ * m_rotation);
+
+    m_arcballPrev = curr;
+}
+
+void Camera::endOrbit() {
+    m_arcballActive = false;
+}
+
+void Camera::orbitDelta(double dx, double dy) {
     if (m_mode == CameraMode::Turntable) {
         m_yaw   -= dx * m_orbitSpeed;
         m_pitch += dy * m_orbitSpeed;
@@ -55,6 +119,10 @@ void Camera::orbit(double dx, double dy) {
         Quat deltaQ = glm::angleAxis(angle, axis);
         m_rotation = glm::normalize(deltaQ * m_rotation);
     }
+}
+
+void Camera::orbit(double dx, double dy) {
+    orbitDelta(dx, dy);
 }
 
 void Camera::pan(double dx, double dy) {

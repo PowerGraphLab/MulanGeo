@@ -90,7 +90,17 @@ public:
 
     // ==================== 交互 ====================
 
+    /// Turntable: delta-based orbit
+    void orbitDelta(double dx, double dy);
+
+    /// Trackball arcball: begin / move / end lifecycle
+    void beginOrbit(int x, int y);
+    void orbitToPoint(int x, int y);
+    void endOrbit();
+
+    /// Legacy orbit interface — dispatches to orbitDelta (Turntable) or arcball (Trackball)
     void orbit(double dx, double dy);
+
     void pan(double dx, double dy);
     void zoom(double delta);
 
@@ -144,6 +154,13 @@ private:
 
     // Trackball 参数（四元数）
     Quat m_rotation = initTrackballRotation();
+
+    // Arcball 状态
+    Vec3  m_arcballPrev = {0, 0, 0};   ///< 上一帧的球面投影点
+    bool  m_arcballActive = false;
+
+    /// 将屏幕坐标映射到虚拟球面上的单位向量
+    Vec3 arcballProject(int x, int y) const;
 
     static Quat initTrackballRotation() {
         constexpr double pi = 3.14159265358979323846;
