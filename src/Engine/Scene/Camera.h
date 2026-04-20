@@ -156,7 +156,7 @@ private:
     Quat m_rotation = initTrackballRotation();
 
     // Arcball 状态
-    Vec3  m_arcballPrev = {0, 0, 0};   ///< 上一帧的球面投影点
+    Vec3  m_arcballPrev = {0, 0, 0};   ///< 上一帧球面投影点
     bool  m_arcballActive = false;
 
     /// 将屏幕坐标映射到虚拟球面上的单位向量
