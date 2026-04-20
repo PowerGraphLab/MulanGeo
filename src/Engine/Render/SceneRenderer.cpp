@@ -21,9 +21,6 @@ void SceneRenderer::render(const RenderQueue& queue, const Camera& camera, Comma
     cmdList->setViewport(vp);
 
     // 3. 遍历 RenderQueue 绘制（每个 drawItem 绑定 UBO）
-    fprintf(stderr, "[DEBUG] SceneRenderer::render: %zu items, pso=%p\n",
-            queue.items().size(), (void*)pso);
-    fflush(stderr);
     for (const auto& item : queue.items()) {
         drawItem(item, cmdList);
     }
@@ -68,8 +65,13 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
         ObjUBO obj{};
         for (int i = 0; i < 16; ++i)
             obj.world[i] = static_cast<float>(glm::value_ptr(item.worldTransform)[i]);
-        // TODO: 计算 normalMat（世界矩阵的逆转置 3x3）
-        obj.normalMat[0] = 1.0f; obj.normalMat[4] = 1.0f; obj.normalMat[8] = 1.0f;
+
+        // Normal matrix: inverse-transpose of world matrix, 3x3 部分
+        Mat3 normalMat3 = glm::transpose(glm::inverse(Mat3(item.worldTransform)));
+        for (int col = 0; col < 3; ++col)
+            for (int row = 0; row < 3; ++row)
+                obj.normalMat[col * 3 + row] = static_cast<float>(normalMat3[col][row]);
+
         obj.pickId = item.pickId;
         m_objectBuffer->update(0, sizeof(ObjUBO), &obj);
 
@@ -99,10 +101,6 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
         m_stats.triangles += gpu->vertexCount / 3;
     }
 
-    fprintf(stderr, "[DEBUG] drawItem: vb=%p ib=%p verts=%u idx=%u\n",
-            (void*)gpu->vertexBuffer, (void*)gpu->indexBuffer,
-            gpu->vertexCount, gpu->indexCount);
-    fflush(stderr);
     ++m_stats.drawCalls;
     ++m_stats.items;
 }
