@@ -12,6 +12,7 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Engine
     IO
+    SARibbon
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets

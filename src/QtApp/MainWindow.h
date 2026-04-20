@@ -6,13 +6,13 @@
  */
 #pragma once
 
-#include <QMainWindow>
+#include "../../3rdparty/SARibbon/SARibbon.h"
 #include <QStackedWidget>
 #include <MulanGeo/IO/DocumentManager.h>
 
 class RenderWidget;
 
-class MainWindow : public QMainWindow {
+class MainWindow : public SARibbonMainWindow {
     Q_OBJECT
 public:
     explicit MainWindow(QWidget* parent = nullptr);

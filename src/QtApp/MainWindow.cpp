@@ -8,21 +8,19 @@
 #include "MainWindow.h"
 #include "RenderWidget.h"
 
-#include <QMenuBar>
-#include <QToolBar>
 #include <QFileDialog>
 #include <QStatusBar>
-#include <QMessageBox>
 #include <QStackedWidget>
 #include <QLabel>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
+#include <QMessageBox>
 #include <QFileInfo>
 
 // ==================== MainWindow ====================
 
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget* parent) : SARibbonMainWindow(parent) {
     setWindowTitle("MulanGeo");
     resize(1280, 720);
     setAcceptDrops(true);
@@ -32,14 +30,19 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setCentralWidget(m_stack);
     showWelcomePage();
 
-    // Menu
-    auto* fileMenu = menuBar()->addMenu("&File");
-    auto* openAction = fileMenu->addAction("&Open...");
-    connect(openAction, &QAction::triggered, this, &MainWindow::onOpenFile);
+    // Ribbon bar
+    auto* ribbonBar = this->ribbonBar();
+    ribbonBar->setRibbonStyle(SARibbonBar::RibbonStyleCompact);
 
-    // Toolbar
-    auto* toolbar = addToolBar("Main");
-    toolbar->addAction(openAction);
+    // Home tab
+    auto* categoryFile = ribbonBar->addCategoryPage(tr("Home"));
+
+    auto* panelFile = new SARibbonPanel(tr("File"), categoryFile);
+    auto* openAction = new QAction(tr("Open"), this);
+    panelFile->addLargeAction(openAction);
+    categoryFile->addPanel(panelFile);
+
+    connect(openAction, &QAction::triggered, this, &MainWindow::onOpenFile);
 
     statusBar()->showMessage("Ready");
 }
