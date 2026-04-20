@@ -200,11 +200,20 @@ void EngineView::loadShaders() {
     std::string shaderDir = "shaders";
 #endif
 
-    // D3D12 加载 DXIL，Vulkan/OpenGL 加载 SPIR-V
-    const char* ext = (m_device->backend() == GraphicsBackend::D3D12) ? ".dxil" : ".spv";
+    // 根据后端选择着色器字节码格式
+    const char* ext = ".spv";
+    if (m_device->backend() == GraphicsBackend::D3D12)
+        ext = ".dxil";
+    else if (m_device->backend() == GraphicsBackend::D3D11)
+        ext = ".dxbc";
 
-    auto solidVsData = loadFile((shaderDir + "/solid.vert" + ext).c_str());
-    auto solidFsData = loadFile((shaderDir + "/solid.frag" + ext).c_str());
+    auto vsPath = shaderDir + "/solid.vert" + ext;
+    auto fsPath = shaderDir + "/solid.frag" + ext;
+    auto solidVsData = loadFile(vsPath.c_str());
+    auto solidFsData = loadFile(fsPath.c_str());
+    fprintf(stderr, "[DEBUG] loadShaders: vs='%s' size=%zu, fs='%s' size=%zu\n",
+            vsPath.c_str(), solidVsData.size(), fsPath.c_str(), solidFsData.size());
+    fflush(stderr);
 
     ShaderDesc vsDesc;
     vsDesc.type         = ShaderType::Vertex;
@@ -255,6 +264,10 @@ void EngineView::createPSOs() {
     } else {
         m_solidPso->finalize(m_swapchain.get());
     }
+    fprintf(stderr, "[DEBUG] createPSOs: solidPso=%p vs=%p ps=%p stride=%u\n",
+            (void*)m_solidPso.get(), (void*)m_solidVs.get(), (void*)m_solidFs.get(),
+            m_vertexLayout.stride());
+    fflush(stderr);
 }
 
 // ============================================================
@@ -405,10 +418,9 @@ void EngineView::updateCameraUBO() {
 
     // Mat4 内部是 double，UBO 需要 float，逐元素转换
     auto storeMat4 = [](float* dst, const Mat4& src) {
-        const float* p = reinterpret_cast<const float*>(
-            glm::value_ptr(FMat4(src)));
+        const double* p = glm::value_ptr(src);
         for (int i = 0; i < 16; ++i)
-            dst[i] = p[i];
+            dst[i] = static_cast<float>(p[i]);
     };
 
     storeMat4(ubo.view,           view);

@@ -7,6 +7,7 @@
 #include "DX11SwapChain.h"
 #include "DX11CommandList.h"
 #include "DX11Convert.h"
+#include <cstdio>
 
 namespace MulanGeo::Engine
 {
@@ -97,6 +98,10 @@ void DX11SwapChain::beginRenderPass(CommandList* cmd)
 
     ID3D11RenderTargetView* rtv = m_backBufferTexture->rtv();
     ID3D11DepthStencilView* dsv = m_depthTexture->dsv();
+
+    fprintf(stderr, "[DEBUG] SwapChain::beginRenderPass: rtv=%p dsv=%p size=%ux%u\n",
+            (void*)rtv, (void*)dsv, m_desc.width, m_desc.height);
+    fflush(stderr);
 
     ctx->OMSetRenderTargets(1, &rtv, dsv);
 

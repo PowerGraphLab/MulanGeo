@@ -5,6 +5,7 @@
  * @date 2026-04-19
  */
 #include "DX11Shader.h"
+#include <cstdio>
 
 namespace MulanGeo::Engine
 {
@@ -28,10 +29,16 @@ DX11Shader::DX11Shader(const ShaderDesc& desc, ID3D11Device* device)
     case ShaderType::Vertex:
         hr = device->CreateVertexShader(code, size, nullptr, &m_vs);
         DX11_CHECK(hr);
+        fprintf(stderr, "[DEBUG] DX11Shader: CreateVertexShader hr=0x%08X vs=%p bytecodeSize=%zu\n",
+                (unsigned)hr, (void*)m_vs.Get(), size);
+        fflush(stderr);
         break;
     case ShaderType::Pixel:
         hr = device->CreatePixelShader(code, size, nullptr, &m_ps);
         DX11_CHECK(hr);
+        fprintf(stderr, "[DEBUG] DX11Shader: CreatePixelShader hr=0x%08X ps=%p bytecodeSize=%zu\n",
+                (unsigned)hr, (void*)m_ps.Get(), size);
+        fflush(stderr);
         break;
     case ShaderType::Geometry:
         hr = device->CreateGeometryShader(code, size, nullptr, &m_gs);

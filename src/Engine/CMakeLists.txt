@@ -98,7 +98,7 @@ if(MSVC)
     target_compile_options(Engine PRIVATE /FS)
 endif()
 
-# --- Shader 编译 (HLSL → SPIR-V + DXIL via dxc) ---
+# --- Shader 编译 (HLSL → SPIR-V + DXIL via dxc, DXBC via fxc) ---
 # 查找 dxc
 find_program(DXC_EXECUTABLE dxc
     HINTS
@@ -110,6 +110,19 @@ find_program(DXC_EXECUTABLE dxc
 set(SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
 set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/shaders")
 file(MAKE_DIRECTORY "${SHADER_OUTPUT_DIR}")
+
+# 查找 fxc (Windows SDK, 用于 DXBC/SM5.0)
+find_program(FXC_EXECUTABLE fxc
+    HINTS
+        "C:/Program Files (x86)/Windows Kits/10/bin/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}/x64"
+        "C:/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64"
+        "C:/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64"
+)
+if(FXC_EXECUTABLE)
+    message(STATUS "Found fxc: ${FXC_EXECUTABLE}")
+else()
+    message(WARNING "fxc not found — DXBC shaders (D3D11) will not be compiled.")
+endif()
 
 if(DXC_EXECUTABLE)
     message(STATUS "Found dxc: ${DXC_EXECUTABLE}")
@@ -196,22 +209,25 @@ if(DXC_EXECUTABLE)
         )
         list(APPEND SHADER_OUTPUTS "${DXIL_OUTPUT}")
 
-        # --- DXBC (D3D11, SM 5.0) ---
-        string(REPLACE ".hlsl" ".dxbc" DXBC_FILE "${SHADER_FILE}")
-        set(DXBC_OUTPUT "${SHADER_OUTPUT_DIR}/${DXBC_FILE}")
+        # --- DXBC (D3D11, SM 5.0 via fxc) ---
+        if(FXC_EXECUTABLE)
+            string(REPLACE ".hlsl" ".dxbc" DXBC_FILE "${SHADER_FILE}")
+            set(DXBC_OUTPUT "${SHADER_OUTPUT_DIR}/${DXBC_FILE}")
 
-        add_custom_command(
-            OUTPUT  "${DXBC_OUTPUT}"
-            COMMAND "${DXC_EXECUTABLE}"
-                -T ${SHADER_STAGE}_5_0
-                -E ${SHADER_ENTRY}
-                -I "${SHADER_SOURCE_DIR}"
-                -Fo "${DXBC_OUTPUT}"
-                "${SHADER_INPUT}"
-            DEPENDS "${SHADER_INPUT}" "${SHADER_COMMON}"
-            COMMENT "Compiling shader: ${SHADER_FILE} → ${DXBC_FILE} (DXBC/SM5.0)"
-        )
-        list(APPEND SHADER_OUTPUTS "${DXBC_OUTPUT}")
+            add_custom_command(
+                OUTPUT  "${DXBC_OUTPUT}"
+                COMMAND "${FXC_EXECUTABLE}"
+                    /T ${SHADER_STAGE}_5_0
+                    /E ${SHADER_ENTRY}
+                    /I "${SHADER_SOURCE_DIR}"
+                    /Fo "${DXBC_OUTPUT}"
+                    /nologo
+                    "${SHADER_INPUT}"
+                DEPENDS "${SHADER_INPUT}" "${SHADER_COMMON}"
+                COMMENT "Compiling shader: ${SHADER_FILE} → ${DXBC_FILE} (DXBC/SM5.0 via fxc)"
+            )
+            list(APPEND SHADER_OUTPUTS "${DXBC_OUTPUT}")
+        endif()
     endforeach()
 
     add_custom_target(Shaders ALL DEPENDS ${SHADER_OUTPUTS})

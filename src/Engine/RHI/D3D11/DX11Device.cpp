@@ -41,6 +41,10 @@ void DX11Device::init(const DeviceCreateInfo& ci)
     // Create DXGI Factory
     HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&m_factory));
     DX11_CHECK(hr);
+    if (FAILED(hr))
+    {
+        return;
+    }
 
     // Device creation flags
     UINT createFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
@@ -67,10 +71,34 @@ void DX11Device::init(const DeviceCreateInfo& ci)
         &m_device,
         &achievedLevel,
         &m_immediateCtx);
+
+    // Debug layer is optional: retry without it when unavailable.
+    if (FAILED(hr) && (createFlags & D3D11_CREATE_DEVICE_DEBUG))
+    {
+        createFlags &= ~D3D11_CREATE_DEVICE_DEBUG;
+        hr = D3D11CreateDevice(
+            nullptr,
+            D3D_DRIVER_TYPE_HARDWARE,
+            nullptr,
+            createFlags,
+            featureLevels,
+            _countof(featureLevels),
+            D3D11_SDK_VERSION,
+            &m_device,
+            &achievedLevel,
+            &m_immediateCtx);
+    }
+
+    // Only report error after all retries exhausted.
     DX11_CHECK(hr);
 
+    if (FAILED(hr) || !m_device || !m_immediateCtx)
+    {
+        return;
+    }
+
     // Debug layer
-    if (ci.enableValidation)
+    if (ci.enableValidation && (createFlags & D3D11_CREATE_DEVICE_DEBUG))
     {
         m_device.As(&m_debugDevice);
     }
@@ -110,42 +138,50 @@ Mat4 DX11Device::clipSpaceCorrectionMatrix() const
 
 Buffer* DX11Device::createBuffer(const BufferDesc& desc)
 {
+    if (!m_device || !m_immediateCtx) return nullptr;
     return new DX11Buffer(desc, m_device.Get(), m_immediateCtx.Get());
 }
 
 Texture* DX11Device::createTexture(const TextureDesc& desc)
 {
+    if (!m_device) return nullptr;
     return new DX11Texture(desc, m_device.Get());
 }
 
 Shader* DX11Device::createShader(const ShaderDesc& desc)
 {
+    if (!m_device) return nullptr;
     return new DX11Shader(desc, m_device.Get());
 }
 
 PipelineState* DX11Device::createPipelineState(const GraphicsPipelineDesc& desc)
 {
+    if (!m_device) return nullptr;
     return new DX11PipelineState(desc, m_device.Get());
 }
 
 CommandList* DX11Device::createCommandList()
 {
+    if (!m_immediateCtx) return nullptr;
     return new DX11CommandList(m_immediateCtx.Get());
 }
 
 SwapChain* DX11Device::createSwapChain(const SwapChainDesc& desc)
 {
+    if (!m_device || !m_factory || !m_immediateCtx) return nullptr;
     return new DX11SwapChain(desc, m_device.Get(), m_factory.Get(),
                              m_immediateCtx.Get(), m_window);
 }
 
 RenderTarget* DX11Device::createRenderTarget(const RenderTargetDesc& desc)
 {
+    if (!m_device) return nullptr;
     return new DX11RenderTarget(desc, m_device.Get());
 }
 
 Fence* DX11Device::createFence(uint64_t initialValue)
 {
+    if (!m_device) return nullptr;
     return new DX11Fence(m_device.Get(), initialValue);
 }
 
@@ -215,13 +251,19 @@ CommandList* DX11Device::frameCommandList()
 void DX11Device::submitAndPresent(SwapChain* swapchain)
 {
     // D3D11: commands already executed on immediate context
-    swapchain->present();
+    if (swapchain)
+    {
+        swapchain->present();
+    }
 }
 
 void DX11Device::submitOffscreen()
 {
     // D3D11: commands already executed on immediate context
-    m_immediateCtx->Flush();
+    if (m_immediateCtx)
+    {
+        m_immediateCtx->Flush();
+    }
 }
 
 // ============================================================
@@ -232,10 +274,14 @@ void DX11Device::bindUniformBuffers(CommandList*, PipelineState*,
                                      const UniformBufferBind* binds,
                                      uint32_t count)
 {
+    if (!m_immediateCtx || !binds) return;
+
     for (uint32_t i = 0; i < count; ++i)
     {
+        if (!binds[i].buffer) continue;
         auto* dx11Buf = static_cast<DX11Buffer*>(binds[i].buffer);
         ID3D11Buffer* buf = dx11Buf->buffer();
+        if (!buf) continue;
         uint32_t slot = binds[i].binding;
 
         // Bind to both VS and PS stages
