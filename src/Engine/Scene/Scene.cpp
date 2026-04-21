@@ -78,7 +78,7 @@ SceneNode* Scene::findByName(SceneNode* node, std::string_view name) {
 void Scene::updateWorldTransform(SceneNode* node, const Mat4& parentWorld) {
     if (!node) return;
 
-    // 仅在 dirty 时針新计算世界矩�?
+    // 仅在 dirty 时針新计算世界矩阵
     if (node->m_worldDirty) {
         node->m_worldTransform = parentWorld * node->localTransform();
         node->m_worldDirty = false;
