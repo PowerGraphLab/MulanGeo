@@ -26,7 +26,6 @@ enum class RenderMode : uint8_t {
     Solid,       // 实体填充
     Wireframe,   // 线框
     SolidWire,   // 实体 + 线框叠加
-    Pick,        // 拾取模式
 };
 
 // ============================================================
@@ -54,7 +53,6 @@ public:
     // --- 管线状态（外部注入）---
     void setSolidPipeline(PipelineState* pso) { m_solidPso = pso; }
     void setWirePipeline(PipelineState* pso)  { m_wirePso = pso; }
-    void setPickPipeline(PipelineState* pso)  { m_pickPso = pso; }
 
     // --- UBO（外部注入）---
     void setCameraBuffer(Buffer* buf)   { m_cameraBuffer = buf; }
@@ -82,7 +80,6 @@ private:
 
     PipelineState* m_solidPso = nullptr;
     PipelineState* m_wirePso  = nullptr;
-    PipelineState* m_pickPso  = nullptr;
 
     Buffer*        m_cameraBuffer  = nullptr;
     Buffer*        m_objectBuffer  = nullptr;

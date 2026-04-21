@@ -33,8 +33,6 @@ PipelineState* SceneRenderer::selectPipeline() const {
             return m_solidPso;
         case RenderMode::Wireframe:
             return m_wirePso;
-        case RenderMode::Pick:
-            return m_pickPso;
         default:
             return m_solidPso;
     }
@@ -95,11 +93,6 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
             { 2, m_materialBuffer, 0, m_materialBuffer->desc().size },
         };
         m_device->bindUniformBuffers(cmdList, pso, uboBinds, 3);
-
-        // 选中面画完后恢复默认材质
-        if (item.selected && m_materialBuffer) {
-            // 下一个 item 的 drawItem 会重新绑定材质
-        }
     }
 
     // 绑定顶点缓冲区

@@ -41,7 +41,7 @@ public:
 
     // --- 查找 ---
 
-    // 按 pickId 查找（深度优先）
+    // 按 pickId 查找节点（深度优先）
     SceneNode* findByPickId(uint32_t pickId);
 
     // 按名称查找（深度优先，返回第一个匹配）

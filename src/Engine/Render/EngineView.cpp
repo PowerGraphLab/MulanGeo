@@ -264,6 +264,7 @@ void EngineView::createPSOs() {
     } else {
         m_solidPso->finalize(m_swapchain.get());
     }
+
     fprintf(stderr, "[DEBUG] createPSOs: solidPso=%p vs=%p ps=%p stride=%u\n",
             (void*)m_solidPso.get(), (void*)m_solidVs.get(), (void*)m_solidFs.get(),
             m_vertexLayout.stride());
@@ -474,7 +475,6 @@ void EngineView::cleanup() {
     m_renderQueue.clear();
     m_sceneRenderer.reset();
 
-    // RAII 资源自动销毁（reset 按逆序）
     m_materialBuffer.reset();
     m_objectBuffer.reset();
     m_cameraBuffer.reset();

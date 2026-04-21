@@ -141,7 +141,6 @@ public:
 
     /// 清除收集回调
     void clearCollector();
-
 private:
     void loadShaders();
     void createPSOs();
