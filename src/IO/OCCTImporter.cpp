@@ -96,8 +96,8 @@ void triangulate(TopoDS_Shape& shape, double linearDeflection) {
     }
 }
 
-MeshPart extractMesh(const TopoDS_Shape& shape) {
-    MeshPart meshPart;
+std::unique_ptr<Engine::MeshGeometry> extractMesh(const TopoDS_Shape& shape) {
+    auto mesh = std::make_unique<Engine::MeshGeometry>();
 
     for (TopExp_Explorer faceExp(shape, TopAbs_FACE); faceExp.More(); faceExp.Next()) {
         TopoDS_Face face = TopoDS::Face(faceExp.Current());
@@ -107,7 +107,7 @@ MeshPart extractMesh(const TopoDS_Shape& shape) {
         if (tri.IsNull()) continue;
 
         const gp_Trsf& trsf = loc.Transformation();
-        int baseIndex = static_cast<int>(meshPart.vertices.size());
+        int baseIndex = static_cast<int>(mesh->vertexCount());
         int nbNodes = tri->NbNodes();
 
         for (int i = 1; i <= nbNodes; i++) {
@@ -116,24 +116,31 @@ MeshPart extractMesh(const TopoDS_Shape& shape) {
             if (tri->HasNormals()) {
                 n = tri->Normal(i).Transformed(trsf);
             }
-            meshPart.vertices.push_back({
-                {static_cast<float>(p.X()), static_cast<float>(p.Y()), static_cast<float>(p.Z())},
-                {static_cast<float>(n.X()), static_cast<float>(n.Y()), static_cast<float>(n.Z())},
-                {0, 0}
-            });
+            // pos(3) + normal(3) + uv(2)
+            mesh->vertices.push_back(static_cast<float>(p.X()));
+            mesh->vertices.push_back(static_cast<float>(p.Y()));
+            mesh->vertices.push_back(static_cast<float>(p.Z()));
+            mesh->vertices.push_back(static_cast<float>(n.X()));
+            mesh->vertices.push_back(static_cast<float>(n.Y()));
+            mesh->vertices.push_back(static_cast<float>(n.Z()));
+            mesh->vertices.push_back(0.0f);
+            mesh->vertices.push_back(0.0f);
         }
 
         int nbTris = tri->NbTriangles();
         for (int i = 1; i <= nbTris; i++) {
             int n0, n1, n2;
             tri->Triangle(i).Get(n0, n1, n2);
-            meshPart.indices.push_back(static_cast<uint32_t>(baseIndex + n0 - 1));
-            meshPart.indices.push_back(static_cast<uint32_t>(baseIndex + n1 - 1));
-            meshPart.indices.push_back(static_cast<uint32_t>(baseIndex + n2 - 1));
+            mesh->indices.push_back(static_cast<uint32_t>(baseIndex + n0 - 1));
+            mesh->indices.push_back(static_cast<uint32_t>(baseIndex + n1 - 1));
+            mesh->indices.push_back(static_cast<uint32_t>(baseIndex + n2 - 1));
         }
     }
 
-    return meshPart;
+    if (!mesh->empty()) {
+        mesh->computeBounds();
+    }
+    return mesh;
 }
 
 } // anonymous namespace
@@ -157,7 +164,7 @@ ImportResult OCCTImporter::importFile(const std::string& path) {
                 double deflection = computeLinearDeflection(solid);
                 triangulate(solid, deflection);
                 auto part = extractMesh(solid);
-                if (!part.vertices.empty()) {
+                if (part && !part->empty()) {
                     result.meshes.push_back(std::move(part));
                 }
             }
@@ -166,7 +173,7 @@ ImportResult OCCTImporter::importFile(const std::string& path) {
                 double deflection = computeLinearDeflection(shape);
                 triangulate(shape, deflection);
                 auto part = extractMesh(shape);
-                if (!part.vertices.empty()) {
+                if (part && !part->empty()) {
                     result.meshes.push_back(std::move(part));
                 }
             }
@@ -174,7 +181,7 @@ ImportResult OCCTImporter::importFile(const std::string& path) {
             double deflection = computeLinearDeflection(shape);
             triangulate(shape, deflection);
             auto part = extractMesh(shape);
-            if (!part.vertices.empty()) {
+            if (part && !part->empty()) {
                 result.meshes.push_back(std::move(part));
             }
         }

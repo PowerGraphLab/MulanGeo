@@ -2,12 +2,12 @@
  * @file UIDocument.cpp
  * @brief UIDocument 实现
  * @author hxxcxx
- * @date 2026-04-18
+ * @date 2026-04-21
  */
 #include "MulanGeo/IO/UIDocument.h"
 #include "MulanGeo/IO/MeshDocument.h"
-#include "MulanGeo/IO/MeshNode.h"
 
+#include "MulanGeo/Engine/Scene/GeometryNode.h"
 #include "MulanGeo/Engine/Render/EngineView.h"
 
 namespace MulanGeo::IO {
@@ -27,16 +27,10 @@ void UIDocument::rebuildScene() {
     if (!meshDoc) return;
 
     uint32_t pickId = 1;
-    for (const auto& mesh : meshDoc->importData().meshes) {
-        auto node = std::make_unique<MeshNode>(mesh.name, pickId++);
-        node->setMeshData(&mesh);
-
-        // 计算包围盒
-        Engine::AABB bounds;
-        for (const auto& v : mesh.vertices) {
-            bounds.expand(Engine::Vec3{v.position.x, v.position.y, v.position.z});
-        }
-        node->setBoundingBox(bounds);
+    for (const auto& geo : meshDoc->geometries()) {
+        auto node = std::make_unique<Engine::GeometryNode>(geo->name, pickId++);
+        node->setMesh(geo.get());
+        node->setBoundingBox(geo->bounds);
 
         m_scene.addChild(std::move(node));
     }
