@@ -3,7 +3,7 @@
 namespace MulanGeo::Engine {
 
 Scene::Scene() {
-    m_root = SceneNode::create(MulanGeo::BaseNodeType, "__root__");
+    m_root = SceneNode::create(MulanGeo::NodeType::Base, "__root__");
 }
 
 SceneNode* Scene::addNode(std::string name, uint32_t pickId) {
@@ -11,7 +11,7 @@ SceneNode* Scene::addNode(std::string name, uint32_t pickId) {
 }
 
 SceneNode* Scene::addNode(SceneNode* parent, std::string name, uint32_t pickId) {
-    auto child = SceneNode::create(MulanGeo::BaseNodeType, std::move(name), pickId);
+    auto child = SceneNode::create(MulanGeo::NodeType::Base, std::move(name), pickId);
     return parent->addChild(std::move(child));
 }
 
@@ -50,7 +50,7 @@ size_t Scene::nodeCount() const {
 }
 
 void Scene::clear() {
-    m_root = SceneNode::create(MulanGeo::BaseNodeType, "__root__");
+    m_root = SceneNode::create(MulanGeo::NodeType::Base, "__root__");
 }
 
 // --- private ---
@@ -78,7 +78,7 @@ SceneNode* Scene::findByName(SceneNode* node, std::string_view name) {
 void Scene::updateWorldTransform(SceneNode* node, const Mat4& parentWorld) {
     if (!node) return;
 
-    // 仅在 dirty 时重新计算世界矩阵
+    // 仅在 dirty 时重新计算世界矩�?
     if (node->m_worldDirty) {
         node->m_worldTransform = parentWorld * node->localTransform();
         node->m_worldDirty = false;

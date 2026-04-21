@@ -12,16 +12,13 @@
 
 namespace MulanGeo::Engine {
 
-// Engine 层节点类型标签
-constexpr NodeType GeometryNodeType = 1;
-
 // ============================================================
 // 几何节点 — 场景中可渲染的三角网格
 // ============================================================
 
 class GeometryNode final : public SceneNode {
 public:
-    static constexpr NodeType kType = GeometryNodeType;
+    static constexpr MulanGeo::NodeType kType = MulanGeo::NodeType::Geometry;
 
     explicit GeometryNode(std::string name = {}, uint32_t pickId = 0)
         : SceneNode(kType, std::move(name), pickId) {}

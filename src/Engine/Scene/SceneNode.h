@@ -18,11 +18,12 @@
 
 namespace MulanGeo {
 
-// 节点类型标签 — 各模块可自行分配值
-using NodeType = uint8_t;
-
-// Engine 保留范围: 0
-constexpr NodeType BaseNodeType = 0;
+// 节点类型枚举
+enum class NodeType : uint8_t {
+    Base      = 0,
+    Geometry  = 1,
+    Group     = 2,
+};
 
 } // namespace MulanGeo
 
@@ -43,7 +44,6 @@ public:
 
     MulanGeo::NodeType type() const { return m_type; }
 
-    // 通用类型检查
     bool isType(MulanGeo::NodeType t) const { return m_type == t; }
 
     // 安全转换（失败返回 nullptr）
