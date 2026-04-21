@@ -45,7 +45,7 @@ public:
 
     // --- Device 信息 ---
     GraphicsBackend backend() const override;
-    const DeviceCapabilities& capabilities() const override;
+    const GPUDeviceCapabilities& capabilities() const override;
     const RenderConfig& renderConfig() const override;
     Mat4 clipSpaceCorrectionMatrix() const override;
 
@@ -120,7 +120,7 @@ private:
     NativeWindowHandle          m_nativeWindow;
     RenderConfig                m_renderConfig;
 
-    DeviceCapabilities          m_caps;
+    GPUDeviceCapabilities          m_caps;
     std::vector<VKSwapChain*>   m_swapChains;
 
     // --- 私有组件 ---

@@ -40,7 +40,7 @@ enum class GraphicsBackend : uint8_t {
 // 设备能力信息（后端初始化后填充）
 // ============================================================
 
-struct DeviceCapabilities {
+struct GPUDeviceCapabilities {
     GraphicsBackend backend = GraphicsBackend::OpenGL;
     uint32_t maxTextureSize    = 0;
     uint32_t maxTextureAniso   = 0;
@@ -79,7 +79,7 @@ public:
     // --- 设备信息 ---
 
     virtual GraphicsBackend backend() const = 0;
-    virtual const DeviceCapabilities& capabilities() const = 0;
+    virtual const GPUDeviceCapabilities& capabilities() const = 0;
     virtual const RenderConfig& renderConfig() const = 0;
 
     // --- 裁剪空间修正 ---

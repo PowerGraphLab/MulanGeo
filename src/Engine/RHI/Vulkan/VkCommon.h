@@ -20,11 +20,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-// Windows SDK 可能将 DeviceCapabilities 定义为宏（映射到 DeviceCapabilitiesA/W）
-// 取消定义以避免与 MulanGeo::Engine::DeviceCapabilities 冲突
-#ifdef DeviceCapabilities
-#undef DeviceCapabilities
-#endif
 
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include <vma/vk_mem_alloc.h>

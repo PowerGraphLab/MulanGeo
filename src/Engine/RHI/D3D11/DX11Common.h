@@ -19,9 +19,6 @@
 #include <dxgi1_3.h>
 #include <wrl/client.h>
 
-#ifdef DeviceCapabilities
-#undef DeviceCapabilities
-#endif
 
 #include <cstdio>
 #include <cstdint>

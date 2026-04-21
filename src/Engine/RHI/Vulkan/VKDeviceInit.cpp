@@ -73,7 +73,7 @@ GraphicsBackend VKDevice::backend() const {
     return GraphicsBackend::Vulkan;
 }
 
-const DeviceCapabilities& VKDevice::capabilities() const {
+const GPUDeviceCapabilities& VKDevice::capabilities() const {
     return m_caps;
 }
 

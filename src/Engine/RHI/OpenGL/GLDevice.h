@@ -57,7 +57,7 @@ public:
         return GraphicsBackend::OpenGL;
     }
 
-    const DeviceCapabilities& capabilities() const override {
+    const GPUDeviceCapabilities& capabilities() const override {
         return m_caps;
     }
 
@@ -137,7 +137,7 @@ private:
     bool               m_initialized = false;
     NativeWindowHandle m_nativeWindow;
     RenderConfig       m_renderConfig;
-    DeviceCapabilities m_caps;
+    GPUDeviceCapabilities m_caps;
 };
 
 } // namespace MulanGeo::Engine

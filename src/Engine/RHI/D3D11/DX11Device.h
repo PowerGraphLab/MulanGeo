@@ -32,7 +32,7 @@ public:
 
     // --- Device 信息 ---
     GraphicsBackend backend() const override { return GraphicsBackend::D3D11; }
-    const DeviceCapabilities& capabilities() const override { return m_caps; }
+    const GPUDeviceCapabilities& capabilities() const override { return m_caps; }
     const RenderConfig& renderConfig() const override { return m_renderConfig; }
     Mat4 clipSpaceCorrectionMatrix() const override;
 
@@ -81,7 +81,7 @@ private:
     ComPtr<ID3D11DeviceContext>         m_immediateCtx;
     ComPtr<ID3D11Debug>                m_debugDevice;
 
-    DeviceCapabilities                 m_caps;
+    GPUDeviceCapabilities                 m_caps;
     RenderConfig                       m_renderConfig;
     NativeWindowHandle                 m_window;
 

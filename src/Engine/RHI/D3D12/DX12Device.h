@@ -34,7 +34,7 @@ public:
 
     // --- Device 信息 ---
     GraphicsBackend backend() const override { return GraphicsBackend::D3D12; }
-    const DeviceCapabilities& capabilities() const override { return m_caps; }
+    const GPUDeviceCapabilities& capabilities() const override { return m_caps; }
     const RenderConfig& renderConfig() const override { return m_renderConfig; }
     Mat4 clipSpaceCorrectionMatrix() const override;
 
@@ -89,7 +89,7 @@ private:
     ComPtr<ID3D12CommandQueue>         m_commandQueue;
     ComPtr<ID3D12Debug>                m_debugController;
 
-    DeviceCapabilities                 m_caps;
+    GPUDeviceCapabilities                 m_caps;
     RenderConfig                       m_renderConfig;
     NativeWindowHandle                 m_window;
     uint32_t                           m_frameCount = 2;

@@ -20,11 +20,6 @@
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 
-// Windows SDK 将 DeviceCapabilities 定义为宏（映射到 DeviceCapabilitiesA/W）
-// 取消定义以避免与 MulanGeo::Engine::DeviceCapabilities 冲突
-#ifdef DeviceCapabilities
-#undef DeviceCapabilities
-#endif
 
 #include <cstdio>
 #include <cstdint>
