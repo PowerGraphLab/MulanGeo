@@ -66,5 +66,6 @@ add_subdirectory(3rdparty/SARibbon)
 
 # ── Subdirectories ──
 add_subdirectory(src/Engine)
+add_subdirectory(src/Document)
 add_subdirectory(src/IO)
 add_subdirectory(src/QtApp)
