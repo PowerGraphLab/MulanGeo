@@ -9,7 +9,7 @@
         "glm",
         {
             "name": "glad",
-            "features": ["gl-api-45", "wgl", "loader"]
+            "features": ["gl-api-46", "wgl", "loader"]
         }
     ]
 }

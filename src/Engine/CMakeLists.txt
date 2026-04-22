@@ -50,6 +50,8 @@ add_library(Engine STATIC
     RHI/D3D11/DX11Device.cpp
     # OpenGL backend (placeholder)
     RHI/OpenGL/GLDevice.cpp
+    RHI/OpenGL/GLShader.cpp
+    RHI/OpenGL/GLSwapChain.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Engine/...

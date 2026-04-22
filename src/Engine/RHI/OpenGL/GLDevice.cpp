@@ -6,9 +6,12 @@
  */
 
 #include "GLDevice.h"
+#include "GLSwapChain.h"
+#include "GLShader.h"
 
 #include <cstdio>
 #include <cstring>
+#include <string>
 
 namespace MulanGeo::Engine {
 
@@ -165,7 +168,7 @@ bool GLDevice::createWGLContext(HWND hwnd, bool enableValidation) {
     if (wglCreateContextAttribsARB) {
         int attribs[] = {
             WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-            WGL_CONTEXT_MINOR_VERSION_ARB, 5,
+            WGL_CONTEXT_MINOR_VERSION_ARB, 6,
             WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
             WGL_CONTEXT_FLAGS_ARB,
                 (enableValidation ? WGL_CONTEXT_DEBUG_BIT_ARB : 0),
@@ -209,9 +212,14 @@ Texture* GLDevice::createTexture(const TextureDesc& /*desc*/) {
     return nullptr;
 }
 
-Shader* GLDevice::createShader(const ShaderDesc& /*desc*/) {
-    // TODO: return new GLShader(desc);
-    std::fprintf(stderr, "[GLDevice] createShader: not yet implemented\n");
+Shader* GLDevice::createShader(const ShaderDesc& desc) {
+    auto shader = new GLShader(desc);
+    if (shader && shader->isValid()) {
+        return shader;
+    }
+    delete shader;
+    std::fprintf(stderr, "[GLDevice] Failed to create shader: %s\n",
+                 std::string(desc.name).c_str());
     return nullptr;
 }
 
@@ -227,10 +235,16 @@ CommandList* GLDevice::createCommandList() {
     return nullptr;
 }
 
-SwapChain* GLDevice::createSwapChain(const SwapChainDesc& /*desc*/) {
-    // TODO: return new GLSwapChain(desc, m_hdc);
-    std::fprintf(stderr, "[GLDevice] createSwapChain: not yet implemented\n");
+SwapChain* GLDevice::createSwapChain(const SwapChainDesc& desc) {
+#ifdef _WIN32
+    GLSwapChain::InitParams params;
+    params.hdc  = m_hdc;
+    params.hwnd = m_hwnd;
+    return new GLSwapChain(desc, params, m_renderConfig);
+#else
+    std::fprintf(stderr, "[GLDevice] createSwapChain: unsupported platform\n");
     return nullptr;
+#endif
 }
 
 Fence* GLDevice::createFence(uint64_t /*initialValue*/) {
