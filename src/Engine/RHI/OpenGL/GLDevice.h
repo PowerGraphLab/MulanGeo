@@ -8,6 +8,7 @@
 #pragma once
 
 #include "GLCommon.h"
+#include "GLCommandList.h"
 #include "../Device.h"
 #include "../../Window.h"
 
@@ -22,7 +23,6 @@ class GLBuffer;
 class GLTexture;
 class GLShader;
 class GLPipelineState;
-class GLCommandList;
 class GLSwapChain;
 class GLFence;
 
@@ -138,6 +138,9 @@ private:
     NativeWindowHandle m_nativeWindow;
     RenderConfig       m_renderConfig;
     GPUDeviceCapabilities m_caps;
+
+    // 帧命令列表缓存（直接成员，避免堆指针被污染）
+    GLCommandList m_frameCommandList;
 };
 
 } // namespace MulanGeo::Engine

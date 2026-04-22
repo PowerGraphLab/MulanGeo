@@ -17,8 +17,14 @@ std::unique_ptr<RHIDevice> RHIDevice::create(const DeviceCreateInfo& ci) {
     case GraphicsBackend::D3D11:
         return std::make_unique<DX11Device>(ci);
 
-    case GraphicsBackend::OpenGL:
-        return std::make_unique<GLDevice>(ci);
+    case GraphicsBackend::OpenGL: {
+        auto dev = std::make_unique<GLDevice>(ci);
+        if (!dev->isInitialized()) {
+            std::fprintf(stderr, "[RHIDevice] GLDevice initialization failed\n");
+            return nullptr;
+        }
+        return dev;
+    }
 
     default:
         return nullptr;

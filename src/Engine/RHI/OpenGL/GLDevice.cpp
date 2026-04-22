@@ -8,6 +8,9 @@
 #include "GLDevice.h"
 #include "GLSwapChain.h"
 #include "GLShader.h"
+#include "GLPipelineState.h"
+#include "GLBuffer.h"
+#include "GLCommandList.h"
 
 #include <cstdio>
 #include <cstring>
@@ -200,9 +203,14 @@ bool GLDevice::createWGLContext(HWND hwnd, bool enableValidation) {
 // 资源创建（桩实现 — TODO: 后续补全具体 GL 子类）
 // ============================================================
 
-Buffer* GLDevice::createBuffer(const BufferDesc& /*desc*/) {
-    // TODO: return new GLBuffer(desc);
-    std::fprintf(stderr, "[GLDevice] createBuffer: not yet implemented\n");
+Buffer* GLDevice::createBuffer(const BufferDesc& desc) {
+    auto buffer = new GLBuffer(desc);
+    if (buffer && buffer->isValid()) {
+        return buffer;
+    }
+    delete buffer;
+    std::fprintf(stderr, "[GLDevice] Failed to create buffer: %s\n",
+                 std::string(desc.name).c_str());
     return nullptr;
 }
 
@@ -223,9 +231,14 @@ Shader* GLDevice::createShader(const ShaderDesc& desc) {
     return nullptr;
 }
 
-PipelineState* GLDevice::createPipelineState(const GraphicsPipelineDesc& /*desc*/) {
-    // TODO: return new GLPipelineState(desc);
-    std::fprintf(stderr, "[GLDevice] createPipelineState: not yet implemented\n");
+PipelineState* GLDevice::createPipelineState(const GraphicsPipelineDesc& desc) {
+    auto pipeline = new GLPipelineState(desc);
+    if (pipeline && pipeline->isValid()) {
+        return pipeline;
+    }
+    delete pipeline;
+    std::fprintf(stderr, "[GLDevice] Failed to create pipeline state: %s\n",
+                 std::string(desc.name).c_str());
     return nullptr;
 }
 
@@ -306,8 +319,13 @@ void GLDevice::beginFrame() {
 }
 
 CommandList* GLDevice::frameCommandList() {
-    // TODO: GL 命令立即执行，CommandList 仅做录制封装
-    return nullptr;
+    // 设备未初始化，返回空指针由上层 if (!cmd) return 捕获
+    if (!m_initialized) {
+        return nullptr;
+    }
+
+    // m_frameCommandList 是直接成员，地址固定，无堆指针风险
+    return &m_frameCommandList;
 }
 
 void GLDevice::submitAndPresent(SwapChain* /*swapchain*/) {
