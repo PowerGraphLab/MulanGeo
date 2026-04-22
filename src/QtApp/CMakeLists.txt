@@ -3,8 +3,8 @@ set(CMAKE_AUTOMOC ON)
 
 add_executable(${PROJECT_NAME}
     main.cpp
-    UIDocument.h
-    UIDocument.cpp
+    UI/UIDocument.h
+    UI/UIDocument.cpp
     UI/MainWindow.h
     UI/MainWindow.cpp
     UI/RenderWidget.h
