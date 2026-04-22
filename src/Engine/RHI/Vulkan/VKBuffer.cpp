@@ -16,11 +16,9 @@ VKBuffer::VKBuffer(const BufferDesc& desc, VmaAllocator allocator)
     VmaAllocationCreateInfo allocInfo{};
     switch (desc.usage) {
         case BufferUsage::Immutable:
+            // 始终分配设备本地内存，通过 staging buffer 上传初始数据
+            // 避免在 render pass 内部做 host mapping 导致驱动问题
             allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-            if (desc.initData) {
-                allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT
-                                | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-            }
             break;
         case BufferUsage::Default:
             allocInfo.usage = VMA_MEMORY_USAGE_AUTO;

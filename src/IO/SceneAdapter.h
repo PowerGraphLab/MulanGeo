@@ -12,6 +12,8 @@
 #include "MulanGeo/Engine/Scene/GeometryNode.h"
 #include "MulanGeo/Engine/Render/RenderGeometry.h"
 
+#include <deque>
+
 namespace MulanGeo::IO {
 
 class SceneAdapter {
@@ -32,6 +34,7 @@ public:
             if (!bounds.isEmpty() && !frustum.intersects(bounds)) return;
 
             // 按面收集 RenderItem
+            // deque::push_back 不失效已有元素的引用/指针
             for (const auto& face : geoNode->faces()) {
                 if (!face.mesh || face.mesh->empty()) continue;
 
@@ -49,7 +52,7 @@ public:
     }
 
 private:
-    std::vector<Engine::RenderGeometry> m_geometries;
+    std::deque<Engine::RenderGeometry> m_geometries;
 };
 
 } // namespace MulanGeo::IO
