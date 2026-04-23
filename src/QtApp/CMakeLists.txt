@@ -1,12 +1,16 @@
 # QtApp - 主应用程序
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
 add_executable(${PROJECT_NAME}
     main.cpp
+    Resource/icon.qrc
     UI/UIDocument.h
     UI/UIDocument.cpp
     UI/SceneBuilder.h
     UI/SceneBuilder.cpp
+    UI/DocumentArea.h
+    UI/DocumentArea.cpp
     UI/MainWindow.h
     UI/MainWindow.cpp
     UI/DocWidget.h

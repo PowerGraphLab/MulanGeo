@@ -1,81 +1,195 @@
-/**
+﻿/**
  * @file MainWindow.cpp
- * @brief Qt 主窗口实现
+ * @brief Qt 主窗口实现 — SARibbon + DocumentArea
  * @author hxxcxx
  * @date 2026-04-22
  */
 #include "MainWindow.h"
-#include "DocWidget.h"
+#include "DocumentArea.h"
 #include "UIDocument.h"
 
 #include <MulanGeo/Document/Document.h>
 
 #include <QFileDialog>
 #include <QStatusBar>
-#include <QStackedWidget>
-#include <QLabel>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
 #include <QMessageBox>
 #include <QFileInfo>
+#include <QMenu>
+#include <QActionGroup>
+
+//===================================================
+// MainWindow
+//===================================================
 
 MainWindow::MainWindow(QWidget* parent) : SARibbonMainWindow(parent) {
     setWindowTitle("MulanGeo");
     resize(1280, 720);
     setAcceptDrops(true);
 
-    m_stack = new QStackedWidget(this);
-    setCentralWidget(m_stack);
-    showWelcomePage();
+    // 中央多文档区
+    m_docArea = new DocumentArea(this);
+    setCentralWidget(m_docArea);
 
-    auto* ribbonBar = this->ribbonBar();
-    ribbonBar->setRibbonStyle(SARibbonBar::RibbonStyleCompact);
+    connect(m_docArea, &DocumentArea::currentDocumentChanged,
+            this, &MainWindow::onCurrentDocumentChanged);
 
-    auto* categoryFile = ribbonBar->addCategoryPage(tr("Home"));
-
-    auto* panelFile = new SARibbonPanel(tr("File"), categoryFile);
-    auto* openAction = new QAction(tr("Open"), this);
-    panelFile->addLargeAction(openAction);
-    categoryFile->addPanel(panelFile);
-
-    connect(openAction, &QAction::triggered, this, &MainWindow::onOpenFile);
+    // 构建 Ribbon
+    buildRibbon();
 
     statusBar()->showMessage("Ready");
 }
 
-void MainWindow::showWelcomePage() {
-    if (m_renderWidget) {
-        m_stack->removeWidget(m_renderWidget);
-        delete m_renderWidget;
-        m_renderWidget = nullptr;
-    }
-    m_uiDoc.reset();
+MainWindow::~MainWindow() = default;
 
-    auto* welcome = new QLabel(
-        "<h2 style='color:#888;'>MulanGeo</h2>"
-        "<p style='color:#aaa;'>Open a CAD file to begin: File → Open, or drag & drop</p>",
-        this);
-    welcome->setAlignment(Qt::AlignCenter);
-    welcome->setStyleSheet("background-color: #2b2b2b;");
-    m_stack->addWidget(welcome);
-    m_stack->setCurrentWidget(welcome);
+//===================================================
+// Ribbon 构建
+//===================================================
+
+void MainWindow::buildRibbon() {
+    auto* ribbon = ribbonBar();
+    ribbon->setRibbonStyle(SARibbonBar::RibbonStyleCompactTwoRow);
+    ribbon->showMinimumModeButton();
+
+    buildApplicationMenu();
+    buildRibbonHomeCategory();
+    buildRibbonViewCategory();
+    buildQuickAccessBar();
+    buildRightButtonBar();
 }
 
-void MainWindow::showRenderView(UIDocument* uiDoc) {
-    while (m_stack->count() > 0 && m_stack->widget(0) != m_renderWidget) {
-        auto* w = m_stack->widget(0);
-        m_stack->removeWidget(w);
-        delete w;
-    }
+void MainWindow::buildApplicationMenu() {
+    auto* appBtn = qobject_cast<SARibbonApplicationButton*>(ribbonBar()->applicationButton());
+    if (!appBtn) return;
 
-    if (!m_renderWidget) {
-        m_renderWidget = new DocWidget(this);
-        m_stack->addWidget(m_renderWidget);
-    }
-    m_stack->setCurrentWidget(m_renderWidget);
+    appBtn->setText(tr("File"));
 
-    m_renderWidget->setUIDocument(uiDoc);
+    auto* menu = new QMenu(this);
+    m_actionOpen = menu->addAction(QIcon(":/app/bright/Icon/open.svg"), tr("Open"));
+    m_actionOpen->setShortcut(QKeySequence::Open);
+    connect(m_actionOpen, &QAction::triggered, this, &MainWindow::onOpenFile);
+
+    m_actionClose = menu->addAction(QIcon(":/app/bright/Icon/close.svg"), tr("Close"));
+    m_actionClose->setShortcut(QKeySequence::Close);
+    connect(m_actionClose, &QAction::triggered, m_docArea, &DocumentArea::closeCurrentDocument);
+
+    menu->addSeparator();
+
+    m_actionExit = menu->addAction(QIcon(":/app/bright/Icon/exit.svg"), tr("Exit"));
+    m_actionExit->setShortcut(QKeySequence::Quit);
+    connect(m_actionExit, &QAction::triggered, this, &QWidget::close);
+
+    appBtn->setMenu(menu);
+}
+
+void MainWindow::buildRibbonHomeCategory() {
+    m_categoryHome = new SARibbonCategory(this);
+    m_categoryHome->setCategoryName(tr("Home"));
+
+    // ── File 面板 ──
+    m_panelFile = new SARibbonPanel(tr("File"), m_categoryHome);
+    if (!m_actionOpen) {
+        m_actionOpen = new QAction(QIcon(":/app/bright/Icon/open.svg"), tr("Open"), this);
+        connect(m_actionOpen, &QAction::triggered, this, &MainWindow::onOpenFile);
+    }
+    m_panelFile->addLargeAction(m_actionOpen);
+
+    if (!m_actionClose) {
+        m_actionClose = new QAction(QIcon(":/app/bright/Icon/close.svg"), tr("Close"), this);
+        connect(m_actionClose, &QAction::triggered, m_docArea, &DocumentArea::closeCurrentDocument);
+    }
+    m_panelFile->addSmallAction(m_actionClose);
+    m_categoryHome->addPanel(m_panelFile);
+
+    // ── Navigation 面板 ──
+    m_panelView = new SARibbonPanel(tr("Navigation"), m_categoryHome);
+    m_actionFitAll = new QAction(QIcon(":/app/bright/Icon/fitall.svg"), tr("Fit All"), this);
+    m_actionFitAll->setShortcut(Qt::Key_F);
+    // TODO: 连接到 DocWidget 的 fitAll 操作
+    m_panelView->addLargeAction(m_actionFitAll);
+    m_categoryHome->addPanel(m_panelView);
+
+    // ── Setting 面板 ──
+    m_panelSetting = new SARibbonPanel(tr("Setting"), m_categoryHome);
+    auto* actionAbout = new QAction(QIcon(":/app/bright/Icon/about.svg"), tr("About"), this);
+    connect(actionAbout, &QAction::triggered, this, [this]() {
+        QMessageBox::about(this, tr("About MulanGeo"),
+            tr("MulanGeo v1.0\nA CAD geometry viewer."));
+    });
+    m_panelSetting->addLargeAction(actionAbout);
+    m_categoryHome->addPanel(m_panelSetting);
+
+    ribbonBar()->addCategoryPage(m_categoryHome);
+}
+
+void MainWindow::buildRibbonViewCategory() {
+    m_categoryView = new SARibbonCategory(this);
+    m_categoryView->setCategoryName(tr("View"));
+
+    m_panelDisplay = new SARibbonPanel(tr("Display"), m_categoryView);
+
+    // 线框模式
+    auto* actionWireframe = new QAction(QIcon(":/app/bright/Icon/wireframe.svg"), tr("Wireframe"), this);
+    actionWireframe->setCheckable(true);
+    m_panelDisplay->addLargeAction(actionWireframe);
+
+    // 实体模式
+    auto* actionShaded = new QAction(QIcon(":/app/bright/Icon/shaded.svg"), tr("Shaded"), this);
+    actionShaded->setCheckable(true);
+    actionShaded->setChecked(true);
+    m_panelDisplay->addLargeAction(actionShaded);
+
+    // 互斥
+    auto* displayGroup = new QActionGroup(this);
+    displayGroup->addAction(actionWireframe);
+    displayGroup->addAction(actionShaded);
+
+    m_panelDisplay->addSeparator();
+
+    // 显示坐标轴
+    auto* actionAxis = new QAction(QIcon(":/app/bright/Icon/axis.svg"), tr("Show Axis"), this);
+    actionAxis->setCheckable(true);
+    actionAxis->setChecked(true);
+    m_panelDisplay->addSmallAction(actionAxis);
+
+    // 显示网格
+    auto* actionGrid = new QAction(QIcon(":/app/bright/Icon/grid.svg"), tr("Show Grid"), this);
+    actionGrid->setCheckable(true);
+    m_panelDisplay->addSmallAction(actionGrid);
+
+    m_categoryView->addPanel(m_panelDisplay);
+    ribbonBar()->addCategoryPage(m_categoryView);
+}
+
+void MainWindow::buildQuickAccessBar() {
+    auto* bar = ribbonBar()->quickAccessBar();
+    if (!bar) return;
+    
+    auto* actionUndo = new QAction(QIcon(":/app/bright/Icon/undo.svg"), tr("Undo"), this);
+    actionUndo->setShortcut(QKeySequence::Undo);
+    bar->addAction(actionUndo);
+
+    auto* actionRedo = new QAction(QIcon(":/app/bright/Icon/redo.svg"), tr("Redo"), this);
+    actionRedo->setShortcut(QKeySequence::Redo);
+    bar->addAction(actionRedo);
+}
+
+void MainWindow::buildRightButtonBar() {
+    // 暂无右侧按钮栏
+}
+
+//===================================================
+// 文档操作
+//===================================================
+
+void MainWindow::onCurrentDocumentChanged(const QString& name) {
+    if (name.isEmpty()) {
+        statusBar()->showMessage("Ready");
+    } else {
+        statusBar()->showMessage("Active: " + name);
+    }
 }
 
 void MainWindow::onOpenFile() {
@@ -99,8 +213,9 @@ void MainWindow::onOpenFile() {
         return;
     }
 
-    m_uiDoc = std::make_unique<UIDocument>(doc);
-    showRenderView(m_uiDoc.get());
+    auto* uiDoc = new UIDocument(doc);
+    QString title = QFileInfo(filePath).fileName();
+    m_docArea->addDocument(uiDoc, title);
 
     statusBar()->showMessage(
         QString("Loaded: %1 | %2")
@@ -129,8 +244,9 @@ void MainWindow::dropEvent(QDropEvent* e) {
         return;
     }
 
-    m_uiDoc = std::make_unique<UIDocument>(doc);
-    showRenderView(m_uiDoc.get());
+    auto* uiDoc = new UIDocument(doc);
+    QString title = QFileInfo(filePath).fileName();
+    m_docArea->addDocument(uiDoc, title);
 
     statusBar()->showMessage(
         QString("Loaded: %1 | %2")
