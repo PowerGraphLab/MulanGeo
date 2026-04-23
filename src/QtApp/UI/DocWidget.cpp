@@ -50,14 +50,6 @@ void DocWidget::init() {
     }
 }
 
-void DocWidget::showEvent(QShowEvent* e) {
-    QWidget::showEvent(e);
-    if (!m_view.isInitialized()) {
-        init();
-    }
-    requestFrame();
-}
-
 void DocWidget::resizeEvent(QResizeEvent* e) {
     QWidget::resizeEvent(e);
     if (m_view.isInitialized()) {

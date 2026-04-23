@@ -35,7 +35,6 @@ public:
     MulanGeo::Engine::EngineView& engineView() { return m_view; }
 
 protected:
-    void showEvent(QShowEvent* e) override;
     void resizeEvent(QResizeEvent* e) override;
     void paintEvent(QPaintEvent*) override;
     QPaintEngine* paintEngine() const override { return nullptr; }
