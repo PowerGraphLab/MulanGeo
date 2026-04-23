@@ -16,19 +16,48 @@ set ROOT_DIR=%SCRIPT_DIR%..
 set WASM_SRC_DIR=%ROOT_DIR%\src\build-wasm
 set BUILD_DIR=%ROOT_DIR%\build-wasm-%BUILD_TYPE%
 
-:: ── 1. 定位 emsdk ────────────────────────────────────────────
+:: ── 1. 定位 / 拉取 emsdk ─────────────────────────────────────
 :: 优先使用项目内置 emsdk（src/emsdk），其次使用环境变量 EMSDK
 set EMSDK_DIR=%ROOT_DIR%\src\emsdk
+
 if not exist "%EMSDK_DIR%\emsdk.bat" (
     if defined EMSDK (
+        :: 使用外部已有的 emsdk
         set EMSDK_DIR=%EMSDK%
+        echo [INFO] Using external EMSDK: !EMSDK_DIR!
     ) else (
-        echo [ERROR] emsdk not found.
-        echo   Expected: %EMSDK_DIR%\emsdk.bat
-        echo   Or set EMSDK environment variable to your emsdk directory.
-        exit /b 1
+        :: 自动 clone emsdk 到 src/emsdk
+        echo [INFO] emsdk not found, cloning from GitHub...
+        where git >nul 2>&1
+        if errorlevel 1 (
+            echo [ERROR] git not found in PATH. Please install Git and try again.
+            exit /b 1
+        )
+        git clone --depth=1 https://github.com/emscripten-core/emsdk.git "%EMSDK_DIR%"
+        if errorlevel 1 (
+            echo [ERROR] Failed to clone emsdk repository.
+            exit /b 1
+        )
+        echo [INFO] emsdk cloned to: %EMSDK_DIR%
     )
 )
+
+:: 若刚 clone 或首次使用，需要 install + activate latest
+if not exist "%EMSDK_DIR%\upstream\emscripten\emcc.bat" (
+    echo [INFO] Installing and activating latest Emscripten toolchain...
+    call "%EMSDK_DIR%\emsdk.bat" install latest
+    if errorlevel 1 (
+        echo [ERROR] emsdk install failed.
+        exit /b 1
+    )
+    call "%EMSDK_DIR%\emsdk.bat" activate latest
+    if errorlevel 1 (
+        echo [ERROR] emsdk activate failed.
+        exit /b 1
+    )
+    echo [INFO] Emscripten toolchain installed and activated.
+)
+
 echo [INFO] Using emsdk: %EMSDK_DIR%
 
 :: ── 2. 激活 emsdk 环境 ───────────────────────────────────────
