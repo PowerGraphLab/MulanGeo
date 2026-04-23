@@ -49,6 +49,9 @@ public:
     /// 注意：program binding 由 CommandList 负责
     void applyRenderState() const;
 
+    /// 返回对应 PrimitiveTopology 的 GL 图元枚举
+    GLenum glTopology() const;
+
 private:
     // 构建着色器程序（link VS + PS + GS）
     void linkProgram();

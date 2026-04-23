@@ -26,6 +26,7 @@ GLShader::GLShader(const ShaderDesc& desc)
     : m_desc(desc)
 {
     // 仅在 GL 4.6+ 时支持 SPIR-V
+#ifndef __EMSCRIPTEN__
     if (!isSPIRVSupported()) {
         std::fprintf(stderr,
             "[GLShader] OpenGL 4.6+ required for SPIR-V support. "
@@ -41,6 +42,15 @@ GLShader::GLShader(const ShaderDesc& desc)
     else if (!desc.filePath.empty()) {
         loadSPIRVFromFile(desc.filePath);
     }
+#else
+    // WebGL/Emscripten: 仅支持 GLSL ES 源码，SPIR-V 不可用
+    if (!desc.filePath.empty()) {
+        loadGLSLFromFile(desc.filePath);
+    } else if (desc.byteCode && desc.byteCodeSize > 0) {
+        const char* src = reinterpret_cast<const char*>(desc.byteCode);
+        createFromGLSL(src, static_cast<int>(desc.byteCodeSize));
+    }
+#endif
 
     if (m_shader) {
         std::fprintf(stdout, "[GLShader] Created %s (handle: %u)\n",
@@ -73,27 +83,24 @@ void GLShader::createFromSPIRV(const uint8_t* spirvCode, uint32_t byteSize) {
         return;
     }
 
+    #ifndef __EMSCRIPTEN__
     // 加载 SPIR-V 二进制（GL 4.6+）
-    // glShaderBinary: 加载预编译的着色器二进制
-    // 参数1: shader 数量
-    // 参数2: shader 对象数组
-    // 参数3: 二进制格式（GL_SHADER_BINARY_FORMAT_SPIR_V）
-    // 参数4: 二进制数据指针
-    // 参数5: 二进制数据大小（字节）
     glShaderBinary(1, &m_shader, GL_SHADER_BINARY_FORMAT_SPIR_V,
                    spirvCode, byteSize);
 
     // 特化着色器（绑定 entry point）
-    // glSpecializeShader: 将 SPIR-V 二进制转换为本地 GL 着色器
-    // 参数1: shader 对象
-    // 参数2: entry point 函数名
-    // 参数3: 特化常量数量（0 表示无）
-    // 参数4-5: 特化常量索引和值（nullptr）
     const char* entryPoint = m_desc.entryPoint.empty() ? "main"
                                                        : m_desc.entryPoint.data();
     glSpecializeShader(m_shader, entryPoint, 0, nullptr, nullptr);
 
     checkCompileError(m_shader, std::string(m_desc.name).c_str());
+#else
+    // WebGL 不支持 SPIR-V，此函数不应被调用
+    (void)spirvCode; (void)byteSize;
+    std::fprintf(stderr, "[GLShader] createFromSPIRV called on WebGL - not supported\n");
+    glDeleteShader(m_shader);
+    m_shader = 0;
+#endif
 }
 
 // ================================================================
@@ -139,6 +146,61 @@ void GLShader::loadSPIRVFromFile(std::string_view filePath) {
 }
 
 // ================================================================
+// GLSL 源码路径（WebGL / Emscripten）
+// ================================================================
+
+void GLShader::createFromGLSL(const char* source, int length) {
+    GLenum glShaderType = toGLShaderType(m_desc.type);
+    m_shader = glCreateShader(glShaderType);
+    if (m_shader == 0) {
+        std::fprintf(stderr, "[GLShader] glCreateShader failed\n");
+        return;
+    }
+
+    glShaderSource(m_shader, 1, &source, length >= 0 ? &length : nullptr);
+    glCompileShader(m_shader);
+    checkCompileError(m_shader, std::string(m_desc.name).c_str());
+
+    GLint status = 0;
+    glGetShaderiv(m_shader, GL_COMPILE_STATUS, &status);
+    if (!status) {
+        glDeleteShader(m_shader);
+        m_shader = 0;
+    }
+}
+
+void GLShader::loadGLSLFromFile(std::string_view filePath) {
+    FILE* file = nullptr;
+#ifdef _WIN32
+    if (fopen_s(&file, std::string(filePath).c_str(), "r") != 0 || !file) {
+#else
+    file = fopen(std::string(filePath).c_str(), "r");
+    if (!file) {
+#endif
+        std::fprintf(stderr, "[GLShader] Failed to open GLSL file: %s\n",
+            std::string(filePath).c_str());
+        return;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    if (fileSize <= 0) {
+        std::fprintf(stderr, "[GLShader] Empty GLSL file: %s\n",
+            std::string(filePath).c_str());
+        fclose(file);
+        return;
+    }
+
+    std::vector<char> src(fileSize + 1, '\0');
+    fread(src.data(), 1, fileSize, file);
+    fclose(file);
+
+    createFromGLSL(src.data(), static_cast<int>(fileSize));
+}
+
+// ================================================================
 // 检查 GL 版本是否支持 SPIR-V
 // ================================================================
 
@@ -167,6 +229,8 @@ GLenum GLShader::toGLShaderType(ShaderType type) {
         return GL_VERTEX_SHADER;
     case ShaderType::Pixel:  // Fragment
         return GL_FRAGMENT_SHADER;
+#ifndef __EMSCRIPTEN__
+    // WebGL ES3 不支持几何/计算/细分着色器
     case ShaderType::Geometry:
         return GL_GEOMETRY_SHADER;
     case ShaderType::Compute:
@@ -175,6 +239,7 @@ GLenum GLShader::toGLShaderType(ShaderType type) {
         return GL_TESS_CONTROL_SHADER;
     case ShaderType::TessEvaluation:  // Domain
         return GL_TESS_EVALUATION_SHADER;
+#endif
     default:
         std::fprintf(stderr, "[GLShader] Unknown shader type: %d\n", (int)type);
         return GL_VERTEX_SHADER;

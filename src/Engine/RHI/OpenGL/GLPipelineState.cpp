@@ -42,11 +42,16 @@ GLenum getGLFrontFace(FrontFace face) {
 
 /// 获取 OpenGL PolygonMode
 GLenum getGLPolygonMode(FillMode mode) {
+#ifndef __EMSCRIPTEN__
     switch (mode) {
     case FillMode::Solid:      return GL_FILL;
     case FillMode::Wireframe:  return GL_LINE;
     default:                   return GL_FILL;
     }
+#else
+    (void)mode;
+    return 0; // WebGL ES3 不支持 glPolygonMode
+#endif
 }
 
 /// 获取 OpenGL 比较函数
@@ -116,10 +121,13 @@ GLenum getGLPrimitiveType(PrimitiveTopology topology) {
     case PrimitiveTopology::LineStrip:      return GL_LINE_STRIP;
     case PrimitiveTopology::TriangleList:   return GL_TRIANGLES;
     case PrimitiveTopology::TriangleStrip:  return GL_TRIANGLE_STRIP;
+    #ifndef __EMSCRIPTEN__
+    // WebGL ES3 不支持邻接图元类型
     case PrimitiveTopology::LineListAdj:    return GL_LINES_ADJACENCY;
     case PrimitiveTopology::LineStripAdj:   return GL_LINE_STRIP_ADJACENCY;
     case PrimitiveTopology::TriangleListAdj: return GL_TRIANGLES_ADJACENCY;
     case PrimitiveTopology::TriangleStripAdj: return GL_TRIANGLE_STRIP_ADJACENCY;
+#endif
     default:                                 return GL_TRIANGLES;
     }
 }
@@ -247,9 +255,11 @@ void GLPipelineState::applyRasterizerState() const {
     // 正面方向
     glFrontFace(getGLFrontFace(desc.frontFace));
 
-    // 多边形模式
+    // 多边形模式（WebGL ES3 不支持 glPolygonMode，仅桌面 OpenGL）
+#ifndef __EMSCRIPTEN__
     GLenum polyMode = getGLPolygonMode(desc.fillMode);
     glPolygonMode(GL_FRONT_AND_BACK, polyMode);
+#endif
 }
 
 void GLPipelineState::applyDepthStencilState() const {
@@ -337,9 +347,11 @@ void GLPipelineState::applyBlendState() const {
 }
 
 void GLPipelineState::applyTopology() const {
-    // OpenGL 图元类型在 glDrawXXX 时指定，这里仅作记录
-    // CommandList 会在调用 glDrawArrays/glDrawElements 时使用
-    (void)getGLPrimitiveType(m_desc.topology);
+    // 图元类型在 glDrawXXX 时通过 glTopology() 传入，此处为 noop
+}
+
+GLenum GLPipelineState::glTopology() const {
+    return getGLPrimitiveType(m_desc.topology);
 }
 
 } // namespace MulanGeo::Engine

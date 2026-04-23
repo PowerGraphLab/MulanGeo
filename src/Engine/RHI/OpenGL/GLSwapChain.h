@@ -28,11 +28,13 @@ class CommandList;
  */
 class GLSwapChain : public SwapChain {
 public:
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__EMSCRIPTEN__)
     struct InitParams {
         HDC    hdc   = nullptr;
         HWND   hwnd  = nullptr;
     };
+#else
+    struct InitParams {};
 #endif
 
     GLSwapChain(const SwapChainDesc& desc,
