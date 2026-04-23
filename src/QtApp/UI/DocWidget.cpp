@@ -30,26 +30,32 @@ DocWidget::DocWidget(QWidget* parent)
 
 DocWidget::~DocWidget() = default;
 
+void DocWidget::init() {
+    if (m_view.isInitialized()) return;
+
+#ifdef _WIN32
+    auto handle = NativeWindowHandle::makeWin32(
+        reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr)),
+        reinterpret_cast<uintptr_t>(HWND(winId())));
+#else
+    NativeWindowHandle handle{};
+#endif
+    const qreal dpr = devicePixelRatioF();
+    const int pw = static_cast<int>(width()  * dpr);
+    const int ph = static_cast<int>(height() * dpr);
+    if (!m_view.init(handle, pw, ph)) return;
+
+    if (m_uiDoc) {
+        m_uiDoc->attachView(&m_view);
+    }
+}
+
 void DocWidget::showEvent(QShowEvent* e) {
     QWidget::showEvent(e);
     if (!m_view.isInitialized()) {
-#ifdef _WIN32
-        auto handle = NativeWindowHandle::makeWin32(
-            reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr)),
-            reinterpret_cast<uintptr_t>(HWND(winId())));
-#else
-        NativeWindowHandle handle{};
-#endif
-        const qreal dpr = devicePixelRatioF();
-        const int pw = static_cast<int>(width()  * dpr);
-        const int ph = static_cast<int>(height() * dpr);
-        if (!m_view.init(handle, pw, ph)) return;
-
-        if (m_uiDoc) {
-            m_uiDoc->attachView(&m_view);
-        }
-        requestFrame();
+        init();
     }
+    requestFrame();
 }
 
 void DocWidget::resizeEvent(QResizeEvent* e) {

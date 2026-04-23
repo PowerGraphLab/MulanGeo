@@ -67,6 +67,9 @@ DocWidget* DocumentArea::addDocument(UIDocument* uiDoc, const QString& title) {
     m_tabWidget->tabBar()->show();
     m_stack->setCurrentIndex(1);  // 切到标签区
 
+    // Widget 已加入布局并设为当前页，此时 winId() 已就绪，安全初始化 Vulkan
+    docWidget->init();
+
     emit documentOpened(title);
     return docWidget;
 }

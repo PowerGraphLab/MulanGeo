@@ -25,6 +25,9 @@ public:
     /// 设置当前 UI 文档（绑定场景到视图）
     void setUIDocument(UIDocument* doc);
 
+    /// 初始化 Vulkan 设备与 SwapChain（需在 widget 显示后、渲染前调用）
+    void init();
+
     /// 请求渲染下一帧
     void requestFrame();
 
