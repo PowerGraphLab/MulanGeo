@@ -15,6 +15,10 @@ foreach(hdr ${CORE_HEADERS})
     configure_file("${hdr}" "${CMAKE_BINARY_DIR}/include/MulanGeo/Core/${rel}" COPYONLY)
 endforeach()
 
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/CoreExport.h"
+               "${CMAKE_BINARY_DIR}/include/MulanGeo/Core/CoreExport.h" COPYONLY)
+
+
 target_include_directories(Core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
 )
