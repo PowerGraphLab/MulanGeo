@@ -123,13 +123,13 @@ void SceneRenderer::loadShaders() {
     vsDesc.type         = ShaderType::Vertex;
     vsDesc.byteCode     = solidVsData.data();
     vsDesc.byteCodeSize = static_cast<uint32_t>(solidVsData.size());
-    m_solidVs = makeResource(m_device->createShader(vsDesc), m_device);
+    m_solidVs = m_device->createShader(vsDesc);
 
     ShaderDesc fsDesc;
     fsDesc.type         = ShaderType::Pixel;
     fsDesc.byteCode     = solidFsData.data();
     fsDesc.byteCodeSize = static_cast<uint32_t>(solidFsData.size());
-    m_solidFs = makeResource(m_device->createShader(fsDesc), m_device);
+    m_solidFs = m_device->createShader(fsDesc);
 }
 
 // ============================================================
@@ -161,19 +161,19 @@ void SceneRenderer::createPSOs() {
     solidDesc.descriptorBindings[2] = {2, 1, DB::kStageFragment};
     solidDesc.descriptorBindingCount = 3;
 
-    m_solidPso = makeResource(m_device->createPipelineState(solidDesc), m_device);
+    m_solidPso = m_device->createPipelineState(solidDesc);
 }
 
 void SceneRenderer::createUBOs() {
     auto* dev = m_device;
-    m_cameraBuffer = makeResource(dev->createBuffer(
-        BufferDesc::uniform(sizeof(CameraUBO), "CameraUBO")), dev);
+    m_cameraBuffer = m_device->createBuffer(
+        BufferDesc::uniform(sizeof(CameraUBO), "CameraUBO"));
 
-    m_objectBuffer = makeResource(dev->createBuffer(
-        BufferDesc::uniform(sizeof(ObjectUBO), "ObjectUBO")), dev);
+    m_objectBuffer = m_device->createBuffer(
+        BufferDesc::uniform(sizeof(ObjectUBO), "ObjectUBO"));
 
-    m_materialBuffer = makeResource(dev->createBuffer(
-        BufferDesc::uniform(sizeof(MaterialUBO), "MaterialUBO")), dev);
+    m_materialBuffer = m_device->createBuffer(
+        BufferDesc::uniform(sizeof(MaterialUBO), "MaterialUBO"));
 
     MaterialUBO mat{};
     mat.baseColor[0] = 0.85f; mat.baseColor[1] = 0.85f; mat.baseColor[2] = 0.88f;
@@ -290,10 +290,10 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList) {
         m_device->bindUniformBuffers(cmdList, m_solidPso.get(), uboBinds, 3);
     }
 
-    cmdList->setVertexBuffer(0, gpu->vertexBuffer);
+    cmdList->setVertexBuffer(0, gpu->vertexBuffer.get());
 
     if (gpu->indexBuffer && gpu->indexCount > 0) {
-        cmdList->setIndexBuffer(gpu->indexBuffer);
+        cmdList->setIndexBuffer(gpu->indexBuffer.get());
         cmdList->drawIndexed(DrawIndexedAttribs{
             .indexCount = gpu->indexCount,
         });

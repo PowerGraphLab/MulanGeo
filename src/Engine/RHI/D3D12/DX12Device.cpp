@@ -119,7 +119,7 @@ Mat4 DX12Device::clipSpaceCorrectionMatrix() const {
 // 资源创建
 // ============================================================
 
-Buffer* DX12Device::createBuffer(const BufferDesc& desc) {
+ResourcePtr<Buffer> DX12Device::createBuffer(const BufferDesc& desc) {
     auto* buf = new DX12Buffer(desc, m_device.Get());
 
     // 上传初始数据
@@ -128,40 +128,40 @@ Buffer* DX12Device::createBuffer(const BufferDesc& desc) {
         buf->markUploaded();
     }
 
-    return buf;
+    return ResourcePtr<Buffer>(buf, DeviceResourceDeleter{this});
 }
 
-Texture* DX12Device::createTexture(const TextureDesc& desc) {
-    return new DX12Texture(desc, m_device.Get());
+ResourcePtr<Texture> DX12Device::createTexture(const TextureDesc& desc) {
+    return ResourcePtr<Texture>(new DX12Texture(desc, m_device.Get()), DeviceResourceDeleter{this});
 }
 
-Shader* DX12Device::createShader(const ShaderDesc& desc) {
-    return new DX12Shader(desc);
+ResourcePtr<Shader> DX12Device::createShader(const ShaderDesc& desc) {
+    return ResourcePtr<Shader>(new DX12Shader(desc), DeviceResourceDeleter{this});
 }
 
-PipelineState* DX12Device::createPipelineState(const GraphicsPipelineDesc& desc) {
-    return new DX12PipelineState(desc, m_device.Get());
+ResourcePtr<PipelineState> DX12Device::createPipelineState(const GraphicsPipelineDesc& desc) {
+    return ResourcePtr<PipelineState>(new DX12PipelineState(desc, m_device.Get()), DeviceResourceDeleter{this});
 }
 
-CommandList* DX12Device::createCommandList() {
+ResourcePtr<CommandList> DX12Device::createCommandList() {
     // 独立命令列表（非帧循环用）
     auto allocator = ComPtr<ID3D12CommandAllocator>();
     m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                      IID_PPV_ARGS(&allocator));
-    return new DX12CommandList(m_device.Get(), allocator.Get());
+    return ResourcePtr<CommandList>(new DX12CommandList(m_device.Get(), allocator.Get()), DeviceResourceDeleter{this});
 }
 
-SwapChain* DX12Device::createSwapChain(const SwapChainDesc& desc) {
-    return new DX12SwapChain(desc, m_device.Get(), m_factory.Get(),
-                             m_commandQueue.Get(), m_window);
+ResourcePtr<SwapChain> DX12Device::createSwapChain(const SwapChainDesc& desc) {
+    return ResourcePtr<SwapChain>(new DX12SwapChain(desc, m_device.Get(), m_factory.Get(),
+                             m_commandQueue.Get(), m_window), DeviceResourceDeleter{this});
 }
 
-RenderTarget* DX12Device::createRenderTarget(const RenderTargetDesc& desc) {
-    return new DX12RenderTarget(desc, m_device.Get());
+ResourcePtr<RenderTarget> DX12Device::createRenderTarget(const RenderTargetDesc& desc) {
+    return ResourcePtr<RenderTarget>(new DX12RenderTarget(desc, m_device.Get()), DeviceResourceDeleter{this});
 }
 
-Fence* DX12Device::createFence(uint64_t initialValue) {
-    return new DX12Fence(m_device.Get(), initialValue);
+ResourcePtr<Fence> DX12Device::createFence(uint64_t initialValue) {
+    return ResourcePtr<Fence>(new DX12Fence(m_device.Get(), initialValue), DeviceResourceDeleter{this});
 }
 
 // ============================================================

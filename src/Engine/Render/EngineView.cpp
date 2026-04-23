@@ -58,7 +58,7 @@ bool EngineView::init(const NativeWindowHandle& window, int width, int height) {
     scDesc.bufferCount = 2;
     scDesc.vsync       = true;
 
-    m_swapchain = makeResource(dev->createSwapChain(scDesc), dev);
+    m_swapchain = dev->createSwapChain(scDesc);
     if (!m_swapchain) { cleanup(); return false; }
 
     // --- Scene Renderer（含 Shader/PSO/UBO）---
@@ -102,13 +102,13 @@ bool EngineView::initOffscreen(int width, int height) {
     rtDesc.depthFormat = TextureFormat::D24_UNorm_S8_UInt;
     rtDesc.hasDepth    = true;
 
-    m_renderTarget = makeResource(dev->createRenderTarget(rtDesc), dev);
+    m_renderTarget = dev->createRenderTarget(rtDesc);
     if (!m_renderTarget) { cleanup(); return false; }
 
     // --- Staging buffer ---
     uint32_t pixelBytes = static_cast<uint32_t>(width) * height * 4;
-    m_stagingBuffer = makeResource(dev->createBuffer(
-        BufferDesc::staging(pixelBytes, "ReadbackStaging")), dev);
+    m_stagingBuffer = dev->createBuffer(
+        BufferDesc::staging(pixelBytes, "ReadbackStaging"));
 
     // --- Scene Renderer ---
     initSceneRenderer();
@@ -138,8 +138,8 @@ void EngineView::resize(int width, int height) {
 
         m_stagingBuffer.reset();
         uint32_t pixelBytes = static_cast<uint32_t>(width) * height * 4;
-        m_stagingBuffer = makeResource(dev->createBuffer(
-            BufferDesc::staging(pixelBytes, "ReadbackStaging")), dev);
+        m_stagingBuffer = dev->createBuffer(
+            BufferDesc::staging(pixelBytes, "ReadbackStaging"));
 
         m_sceneRenderer->finalizePipeline(m_renderTarget.get());
     } else {
@@ -218,15 +218,14 @@ bool EngineView::readbackPixels(std::vector<uint8_t>& pixels) {
 
     m_device->waitIdle();
 
-    auto* cmd = m_device->createCommandList();
+    auto cmd = m_device->createCommandList();
     cmd->begin();
     cmd->transitionResource(m_renderTarget->colorTexture(), ResourceState::CopySrc);
     cmd->copyTextureToBuffer(m_renderTarget->colorTexture(), m_stagingBuffer.get());
     cmd->end();
 
-    m_device->executeCommandList(cmd);
+    m_device->executeCommandList(cmd.get());
     m_device->waitIdle();
-    m_device->destroy(cmd);
 
     uint32_t byteSize = static_cast<uint32_t>(m_width) * m_height * 4;
     pixels.resize(byteSize);

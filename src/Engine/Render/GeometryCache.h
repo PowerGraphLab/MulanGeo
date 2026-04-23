@@ -18,8 +18,8 @@ namespace MulanGeo::Engine {
 
 // 单份几何的 GPU 资源
 struct GpuGeometryBuffers {
-    Buffer* vertexBuffer = nullptr;
-    Buffer* indexBuffer  = nullptr;
+    ResourcePtr<Buffer> vertexBuffer;
+    ResourcePtr<Buffer> indexBuffer;
     uint32_t vertexCount = 0;
     uint32_t indexCount  = 0;
     uint32_t vertexStride = 0;

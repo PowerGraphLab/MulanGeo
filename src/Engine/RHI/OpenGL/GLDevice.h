@@ -71,14 +71,14 @@ public:
 
     // --- 资源创建（桩实现，后续补全）---
 
-    Buffer*        createBuffer(const BufferDesc& desc) override;
-    Texture*       createTexture(const TextureDesc& desc) override;
-    Shader*        createShader(const ShaderDesc& desc) override;
-    PipelineState* createPipelineState(const GraphicsPipelineDesc& desc) override;
-    CommandList*   createCommandList() override;
-    SwapChain*     createSwapChain(const SwapChainDesc& desc) override;
-    RenderTarget*  createRenderTarget(const RenderTargetDesc& desc) override;
-    Fence*         createFence(uint64_t initialValue = 0) override;
+    ResourcePtr<Buffer>        createBuffer(const BufferDesc& desc) override;
+    ResourcePtr<Texture>       createTexture(const TextureDesc& desc) override;
+    ResourcePtr<Shader>        createShader(const ShaderDesc& desc) override;
+    ResourcePtr<PipelineState> createPipelineState(const GraphicsPipelineDesc& desc) override;
+    ResourcePtr<CommandList>   createCommandList() override;
+    ResourcePtr<SwapChain>     createSwapChain(const SwapChainDesc& desc) override;
+    ResourcePtr<RenderTarget>  createRenderTarget(const RenderTargetDesc& desc) override;
+    ResourcePtr<Fence>         createFence(uint64_t initialValue = 0) override;
 
     // --- 资源销毁 ---
 

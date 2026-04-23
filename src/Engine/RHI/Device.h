@@ -62,6 +62,28 @@ struct DeviceCreateInfo {
     const char*        appName          = "MulanGeo";
 };
 
+// Forward declaration (needed for DeviceResourceDeleter)
+class RHIDevice;
+
+// ============================================================
+// RAII 资源指针 — 自动调用 device->destroy()
+// ============================================================
+
+struct DeviceResourceDeleter {
+    RHIDevice* device = nullptr;
+    template <typename T>
+    void operator()(T* ptr) const;
+};
+
+template <typename T>
+using ResourcePtr = std::unique_ptr<T, DeviceResourceDeleter>;
+
+/// 创建 RAII 资源指针
+template <typename T>
+ResourcePtr<T> makeResource(T* raw, RHIDevice* device) {
+    return ResourcePtr<T>(raw, DeviceResourceDeleter{device});
+}
+
 // ============================================================
 // RHI 设备基类
 //
@@ -91,15 +113,15 @@ public:
     virtual Mat4 clipSpaceCorrectionMatrix() const = 0;
 
     // --- 资源创建 ---
+    virtual ResourcePtr<Buffer>        createBuffer(const BufferDesc& desc) = 0;
+    virtual ResourcePtr<Texture>       createTexture(const TextureDesc& desc) = 0;
+    virtual ResourcePtr<Shader>        createShader(const ShaderDesc& desc) = 0;
+    virtual ResourcePtr<PipelineState> createPipelineState(const GraphicsPipelineDesc& desc) = 0;
+    virtual ResourcePtr<CommandList>   createCommandList() = 0;
+    virtual ResourcePtr<SwapChain>     createSwapChain(const SwapChainDesc& desc) = 0;
+    virtual ResourcePtr<RenderTarget>  createRenderTarget(const RenderTargetDesc& desc) = 0;
+    virtual ResourcePtr<Fence>         createFence(uint64_t initialValue = 0) = 0;
 
-    virtual Buffer*         createBuffer(const BufferDesc& desc) = 0;
-    virtual Texture*        createTexture(const TextureDesc& desc) = 0;
-    virtual Shader*         createShader(const ShaderDesc& desc) = 0;
-    virtual PipelineState*  createPipelineState(const GraphicsPipelineDesc& desc) = 0;
-    virtual CommandList*    createCommandList() = 0;
-    virtual SwapChain*      createSwapChain(const SwapChainDesc& desc) = 0;
-    virtual RenderTarget*   createRenderTarget(const RenderTargetDesc& desc) = 0;
-    virtual Fence*          createFence(uint64_t initialValue = 0) = 0;
 
     // --- 资源销毁 ---
 
@@ -177,24 +199,13 @@ protected:
 };
 
 // ============================================================
-// RAII 资源指针 — 自动调用 device->destroy()
+// DeviceResourceDeleter 模板实现（在 RHIDevice 定义之后）
 // ============================================================
 
-struct DeviceResourceDeleter {
-    RHIDevice* device = nullptr;
-    template <typename T>
-    void operator()(T* ptr) const {
-        if (ptr && device) device->destroy(ptr);
-    }
-};
-
 template <typename T>
-using ResourcePtr = std::unique_ptr<T, DeviceResourceDeleter>;
-
-/// 创建 RAII 资源指针
-template <typename T>
-ResourcePtr<T> makeResource(T* raw, RHIDevice* device) {
-    return ResourcePtr<T>(raw, DeviceResourceDeleter{device});
+void DeviceResourceDeleter::operator()(T* ptr) const {
+    if (ptr && device) device->destroy(ptr);
 }
 
+// ============================================================
 } // namespace MulanGeo::Engine

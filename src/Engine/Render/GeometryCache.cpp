@@ -17,10 +17,7 @@ const GpuGeometryBuffers* GeometryCache::getOrUpload(const RenderGeometry* geo) 
 }
 
 void GeometryCache::clear() {
-    for (auto& [_, buf] : m_cache) {
-        if (buf.vertexBuffer) m_device->destroy(buf.vertexBuffer);
-        if (buf.indexBuffer)  m_device->destroy(buf.indexBuffer);
-    }
+    // ResourcePtr 析构时自动调用 device->destroy()
     m_cache.clear();
 }
 

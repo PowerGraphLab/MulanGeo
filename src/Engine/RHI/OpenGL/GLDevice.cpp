@@ -203,10 +203,10 @@ bool GLDevice::createWGLContext(HWND hwnd, bool enableValidation) {
 // 资源创建（桩实现 — TODO: 后续补全具体 GL 子类）
 // ============================================================
 
-Buffer* GLDevice::createBuffer(const BufferDesc& desc) {
-    auto buffer = new GLBuffer(desc);
+ResourcePtr<Buffer> GLDevice::createBuffer(const BufferDesc& desc) {
+    auto* buffer = new GLBuffer(desc);
     if (buffer && buffer->isValid()) {
-        return buffer;
+        return ResourcePtr<Buffer>(buffer, DeviceResourceDeleter{this});
     }
     delete buffer;
     std::fprintf(stderr, "[GLDevice] Failed to create buffer: %s\n",
@@ -214,16 +214,16 @@ Buffer* GLDevice::createBuffer(const BufferDesc& desc) {
     return nullptr;
 }
 
-Texture* GLDevice::createTexture(const TextureDesc& /*desc*/) {
+ResourcePtr<Texture> GLDevice::createTexture(const TextureDesc& /*desc*/) {
     // TODO: return new GLTexture(desc);
     std::fprintf(stderr, "[GLDevice] createTexture: not yet implemented\n");
     return nullptr;
 }
 
-Shader* GLDevice::createShader(const ShaderDesc& desc) {
-    auto shader = new GLShader(desc);
+ResourcePtr<Shader> GLDevice::createShader(const ShaderDesc& desc) {
+    auto* shader = new GLShader(desc);
     if (shader && shader->isValid()) {
-        return shader;
+        return ResourcePtr<Shader>(shader, DeviceResourceDeleter{this});
     }
     delete shader;
     std::fprintf(stderr, "[GLDevice] Failed to create shader: %s\n",
@@ -231,10 +231,10 @@ Shader* GLDevice::createShader(const ShaderDesc& desc) {
     return nullptr;
 }
 
-PipelineState* GLDevice::createPipelineState(const GraphicsPipelineDesc& desc) {
-    auto pipeline = new GLPipelineState(desc);
+ResourcePtr<PipelineState> GLDevice::createPipelineState(const GraphicsPipelineDesc& desc) {
+    auto* pipeline = new GLPipelineState(desc);
     if (pipeline && pipeline->isValid()) {
-        return pipeline;
+        return ResourcePtr<PipelineState>(pipeline, DeviceResourceDeleter{this});
     }
     delete pipeline;
     std::fprintf(stderr, "[GLDevice] Failed to create pipeline state: %s\n",
@@ -242,31 +242,31 @@ PipelineState* GLDevice::createPipelineState(const GraphicsPipelineDesc& desc) {
     return nullptr;
 }
 
-CommandList* GLDevice::createCommandList() {
+ResourcePtr<CommandList> GLDevice::createCommandList() {
     // TODO: return new GLCommandList();
     std::fprintf(stderr, "[GLDevice] createCommandList: not yet implemented\n");
     return nullptr;
 }
 
-SwapChain* GLDevice::createSwapChain(const SwapChainDesc& desc) {
+ResourcePtr<SwapChain> GLDevice::createSwapChain(const SwapChainDesc& desc) {
 #ifdef _WIN32
     GLSwapChain::InitParams params;
     params.hdc  = m_hdc;
     params.hwnd = m_hwnd;
-    return new GLSwapChain(desc, params, m_renderConfig);
+    return ResourcePtr<SwapChain>(new GLSwapChain(desc, params, m_renderConfig), DeviceResourceDeleter{this});
 #else
     std::fprintf(stderr, "[GLDevice] createSwapChain: unsupported platform\n");
     return nullptr;
 #endif
 }
 
-Fence* GLDevice::createFence(uint64_t /*initialValue*/) {
+ResourcePtr<Fence> GLDevice::createFence(uint64_t /*initialValue*/) {
     // TODO: return new GLFence();
     std::fprintf(stderr, "[GLDevice] createFence: not yet implemented\n");
     return nullptr;
 }
 
-RenderTarget* GLDevice::createRenderTarget(const RenderTargetDesc& /*desc*/) {
+ResourcePtr<RenderTarget> GLDevice::createRenderTarget(const RenderTargetDesc& /*desc*/) {
     // TODO: return new GLRenderTarget(desc);
     std::fprintf(stderr, "[GLDevice] createRenderTarget: not yet implemented\n");
     return nullptr;

@@ -14,31 +14,31 @@ namespace MulanGeo::Engine {
 // 资源创建
 // ============================================================
 
-Buffer* VKDevice::createBuffer(const BufferDesc& desc) {
+ResourcePtr<Buffer> VKDevice::createBuffer(const BufferDesc& desc) {
     auto* buf = new VKBuffer(desc, m_allocator);
     if (buf->needsUpload()) {
         m_uploadContext->uploadBufferInit(buf);
     }
-    return buf;
+    return ResourcePtr<Buffer>(buf, DeviceResourceDeleter{this});
 }
 
-Texture* VKDevice::createTexture(const TextureDesc& desc) {
-    return new VKTexture(desc, m_device, m_allocator);
+ResourcePtr<Texture> VKDevice::createTexture(const TextureDesc& desc) {
+    return ResourcePtr<Texture>(new VKTexture(desc, m_device, m_allocator), DeviceResourceDeleter{this});
 }
 
-Shader* VKDevice::createShader(const ShaderDesc& desc) {
-    return new VKShader(desc, m_device);
+ResourcePtr<Shader> VKDevice::createShader(const ShaderDesc& desc) {
+    return ResourcePtr<Shader>(new VKShader(desc, m_device), DeviceResourceDeleter{this});
 }
 
-PipelineState* VKDevice::createPipelineState(const GraphicsPipelineDesc& desc) {
-    return new VKPipelineState(desc, m_device);
+ResourcePtr<PipelineState> VKDevice::createPipelineState(const GraphicsPipelineDesc& desc) {
+    return ResourcePtr<PipelineState>(new VKPipelineState(desc, m_device), DeviceResourceDeleter{this});
 }
 
-CommandList* VKDevice::createCommandList() {
-    return new VKCommandList(m_device, m_graphicsQueueFamily);
+ResourcePtr<CommandList> VKDevice::createCommandList() {
+    return ResourcePtr<CommandList>(new VKCommandList(m_device, m_graphicsQueueFamily), DeviceResourceDeleter{this});
 }
 
-SwapChain* VKDevice::createSwapChain(const SwapChainDesc& desc) {
+ResourcePtr<SwapChain> VKDevice::createSwapChain(const SwapChainDesc& desc) {
     VKSwapChain::InitParams params;
     params.instance            = m_instance;
     params.physicalDevice      = m_physicalDevice;
@@ -63,14 +63,14 @@ SwapChain* VKDevice::createSwapChain(const SwapChainDesc& desc) {
         initFrameContexts(m_frameCount);
     }
 
-    return swapchain;
+    return ResourcePtr<SwapChain>(swapchain, DeviceResourceDeleter{this});
 }
 
-Fence* VKDevice::createFence(uint64_t initialValue) {
-    return new VKFence(m_device, initialValue);
+ResourcePtr<Fence> VKDevice::createFence(uint64_t initialValue) {
+    return ResourcePtr<Fence>(new VKFence(m_device, initialValue), DeviceResourceDeleter{this});
 }
 
-RenderTarget* VKDevice::createRenderTarget(const RenderTargetDesc& desc) {
+ResourcePtr<RenderTarget> VKDevice::createRenderTarget(const RenderTargetDesc& desc) {
     auto* rt = new VKRenderTarget(desc, m_device, m_allocator);
 
     // 如果 frame contexts 还未初始化（无 SwapChain 时），在此初始化
@@ -78,7 +78,7 @@ RenderTarget* VKDevice::createRenderTarget(const RenderTargetDesc& desc) {
         initFrameContexts(m_frameCount);
     }
 
-    return rt;
+    return ResourcePtr<RenderTarget>(rt, DeviceResourceDeleter{this});
 }
 
 // ============================================================
