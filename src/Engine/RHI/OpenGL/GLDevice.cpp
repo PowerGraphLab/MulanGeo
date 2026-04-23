@@ -220,10 +220,10 @@ ResourcePtr<Buffer> GLDevice::createBuffer(const BufferDesc& desc) {
     return nullptr;
 }
 
-Texture* GLDevice::createTexture(const TextureDesc& desc) {
-    auto texture = new GLTexture(desc);
+ResourcePtr<Texture> GLDevice::createTexture(const TextureDesc& desc) {
+    auto* texture = new GLTexture(desc);
     if (texture && texture->isValid()) {
-        return texture;
+        return ResourcePtr<Texture>(texture, DeviceResourceDeleter{this});
     }
     delete texture;
     std::fprintf(stderr, "[GLDevice] Failed to create texture: %s\n",
@@ -253,10 +253,10 @@ ResourcePtr<PipelineState> GLDevice::createPipelineState(const GraphicsPipelineD
     return nullptr;
 }
 
-CommandList* GLDevice::createCommandList() {
-    auto cmdList = new GLCommandList();
+ResourcePtr<CommandList> GLDevice::createCommandList() {
+    auto* cmdList = new GLCommandList();
     if (cmdList)
-        return cmdList;
+        return ResourcePtr<CommandList>(cmdList, DeviceResourceDeleter{this});
     delete cmdList;
     std::fprintf(stderr, "[GLDevice] Failed to create command list\n");
     return nullptr;
@@ -280,10 +280,10 @@ ResourcePtr<Fence> GLDevice::createFence(uint64_t /*initialValue*/) {
     return nullptr;
 }
 
-RenderTarget* GLDevice::createRenderTarget(const RenderTargetDesc& desc) {
-    auto rt = new GLRenderTarget(desc);
+ResourcePtr<RenderTarget> GLDevice::createRenderTarget(const RenderTargetDesc& desc) {
+    auto* rt = new GLRenderTarget(desc);
     if (rt && rt->isValid()) {
-        return rt;
+        return ResourcePtr<RenderTarget>(rt, DeviceResourceDeleter{this});
     }
     delete rt;
     std::fprintf(stderr, "[GLDevice] Failed to create render target (%ux%u)\n",
