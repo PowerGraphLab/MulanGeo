@@ -231,8 +231,8 @@ void SceneRenderer::createUBOs() {
         BufferDesc::uniform(sizeof(MaterialUBO), "MaterialUBO"));
 
     MaterialUBO mat{};
-    // 默认浅灰（参考 FreeCAD/OCCT 默认显示色）
-    mat.baseColor[0] = 0.83f; mat.baseColor[1] = 0.83f; mat.baseColor[2] = 0.83f;
+    // 默认浅灰
+    mat.baseColor[0] = 0.78f; mat.baseColor[1] = 0.78f; mat.baseColor[2] = 0.78f;
     // 光从上方偏前照射
     mat.lightDir[0]  = 0.13f; mat.lightDir[1]  = 0.76f;  mat.lightDir[2]  = -0.20f;
     // 光源颜色 × 强度（参考项目: (0.75,0.87,0.96) × 10.0 × 0.4）
@@ -368,7 +368,7 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList, Pipel
         } else if (m_materialBuffer) {
             // 恢复默认材质
             MaterialUBO mat{};
-            mat.baseColor[0] = 0.83f; mat.baseColor[1] = 0.83f; mat.baseColor[2] = 0.83f;
+            mat.baseColor[0] = 0.78f; mat.baseColor[1] = 0.78f; mat.baseColor[2] = 0.78f;
             mat.lightDir[0]  = 0.13f; mat.lightDir[1]  = 0.76f; mat.lightDir[2]  = -0.20f;
             mat.lightColor[0] = 3.0f; mat.lightColor[1] = 3.5f; mat.lightColor[2] = 3.8f;
             mat.ambientColor[0] = 0.26f; mat.ambientColor[1] = 0.24f; mat.ambientColor[2] = 0.20f;
