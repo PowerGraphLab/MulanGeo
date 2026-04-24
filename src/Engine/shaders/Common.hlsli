@@ -38,10 +38,12 @@ cbuffer Material : register(b2) {
     float  _pad2;
     float3 LightDir;       // 归一化定向光方向
     float  _pad3;
-    float3 AmbientColor;
+    float3 LightColor;     // 光源颜色 × 强度
     float  _pad4;
-    float3 WireColor;
+    float3 AmbientColor;
     float  _pad5;
+    float3 WireColor;
+    float  _pad6;
 };
 
 // ============================================================
