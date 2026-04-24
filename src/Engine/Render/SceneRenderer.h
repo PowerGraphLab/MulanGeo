@@ -17,7 +17,6 @@
 #include "../RHI/RenderTarget.h"
 #include "../Scene/Camera.h"
 #include "RenderGeometry.h"
-#include "GeometryCache.h"
 #include "LightEnvironment.h"
 
 #include <cstdint>
@@ -65,9 +64,6 @@ public:
     void setRenderMode(RenderMode mode) { m_renderMode = mode; }
     RenderMode renderMode() const { return m_renderMode; }
 
-    // --- 清理 GPU 缓存 ---
-    void clearCache() { m_cache.clear(); }
-
     // --- 渲染 ---
     void render(const RenderQueue& queue, const Camera& camera, CommandList* cmdList,
                 const LightEnvironment& lightEnv);
@@ -87,9 +83,9 @@ private:
     PipelineState* selectPipeline() const;
     PipelineState* selectEdgePipeline() const;
     void drawItem(const RenderItem& item, CommandList* cmdList, PipelineState* pso, bool isEdge);
+    void fillLightingUBO(struct MaterialUBO& mat);
 
     RHIDevice*   m_device;
-    GeometryCache m_cache;
 
     // --- Shader / PSO ---
     ResourcePtr<Shader>         m_solidVs;
@@ -102,8 +98,11 @@ private:
 
     // --- UBO ---
     ResourcePtr<Buffer>         m_cameraBuffer;
-    ResourcePtr<Buffer>         m_objectBuffer;
-    ResourcePtr<Buffer>         m_materialBuffer;
+    ResourcePtr<Buffer>         m_objectBuffer;    // ring buffer: kMaxDrawCalls * sizeof(ObjectUBO)
+    ResourcePtr<Buffer>         m_materialBuffer;  // ring buffer: kMaxDrawCalls * sizeof(MaterialUBO)
+
+    static constexpr uint32_t   kMaxDrawCalls = 4096;
+    uint32_t                    m_drawCallIndex = 0;
 
     RenderMode   m_renderMode = RenderMode::Solid;
     LightEnvironment m_lightEnv;

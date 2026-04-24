@@ -160,7 +160,7 @@ void EngineView::renderFrame() {
     if (m_scene) {
         m_scene->updateWorldTransforms();
         auto frustum = m_camera.frustum();
-        CullVisitor cull(frustum, m_renderQueue);
+        CullVisitor cull(frustum, m_renderQueue, m_device.get());
         m_scene->traverseVisible([&](SceneNode& node) {
             cull.visit(node);
         });
@@ -278,7 +278,6 @@ void EngineView::setScene(Scene* scene) {
 void EngineView::clearScene() {
     m_scene = nullptr;
     m_renderQueue.clear();
-    if (m_sceneRenderer) m_sceneRenderer->clearCache();
 }
 
 // ============================================================

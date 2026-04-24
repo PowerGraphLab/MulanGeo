@@ -27,8 +27,8 @@ struct alignas(16) CameraUBO {
 
 struct alignas(16) ObjectUBO {
     float world[16];
-    float normalMat[9];
-    float _pad1[3];
+    // std140: float3x3 占 3×16=48 字节（每列 vec4，末尾 padding）
+    float normalMat[12];   // [col0.x .y .z _pad, col1.x .y .z _pad, col2.x .y .z _pad]
     uint32_t pickId;
     float _pad2[3];
 };
@@ -46,7 +46,7 @@ struct alignas(16) MaterialUBO {
 // ============================================================
 
 SceneRenderer::SceneRenderer(RHIDevice* device)
-    : m_device(device), m_cache(device) {}
+    : m_device(device) {}
 
 // ============================================================
 // 初始化
@@ -62,7 +62,6 @@ bool SceneRenderer::init() {
 }
 
 void SceneRenderer::cleanup() {
-    m_cache.clear();
     m_materialBuffer.reset();
     m_objectBuffer.reset();
     m_cameraBuffer.reset();
@@ -225,10 +224,10 @@ void SceneRenderer::createUBOs() {
         BufferDesc::uniform(sizeof(CameraUBO), "CameraUBO"));
 
     m_objectBuffer = m_device->createBuffer(
-        BufferDesc::uniform(sizeof(ObjectUBO), "ObjectUBO"));
+        BufferDesc::uniform(kMaxDrawCalls * sizeof(ObjectUBO), "ObjectUBO_Ring"));
 
     m_materialBuffer = m_device->createBuffer(
-        BufferDesc::uniform(sizeof(MaterialUBO), "MaterialUBO"));
+        BufferDesc::uniform(kMaxDrawCalls * sizeof(MaterialUBO), "MaterialUBO_Ring"));
 
     // 确保默认光照环境有一个方向光
     if (m_lightEnv.lightCount == 0) {
@@ -237,20 +236,7 @@ void SceneRenderer::createUBOs() {
 
     MaterialUBO mat{};
     mat.baseColor[0] = 0.78f; mat.baseColor[1] = 0.78f; mat.baseColor[2] = 0.78f;
-
-    // 从 LightEnvironment 填充光照
-    if (auto* dl = m_lightEnv.primaryDirectional()) {
-        mat.lightDir[0]  = static_cast<float>(dl->direction.x);
-        mat.lightDir[1]  = static_cast<float>(dl->direction.y);
-        mat.lightDir[2]  = static_cast<float>(dl->direction.z);
-        mat.lightColor[0] = static_cast<float>(dl->color.x * dl->intensity * 3.0f);
-        mat.lightColor[1] = static_cast<float>(dl->color.y * dl->intensity * 3.5f);
-        mat.lightColor[2] = static_cast<float>(dl->color.z * dl->intensity * 3.8f);
-    }
-    mat.ambientColor[0] = static_cast<float>(m_lightEnv.ambientColor.x * m_lightEnv.ambientIntensity);
-    mat.ambientColor[1] = static_cast<float>(m_lightEnv.ambientColor.y * m_lightEnv.ambientIntensity);
-    mat.ambientColor[2] = static_cast<float>(m_lightEnv.ambientColor.z * m_lightEnv.ambientIntensity);
-
+    fillLightingUBO(mat);
     // 边线颜色：深灰
     mat.wireColor[0] = 0.10f; mat.wireColor[1] = 0.10f; mat.wireColor[2] = 0.10f;
     m_materialBuffer->update(0, sizeof(MaterialUBO), &mat);
@@ -301,6 +287,7 @@ void SceneRenderer::render(const RenderQueue& queue, const Camera& camera, Comma
                            const LightEnvironment& lightEnv) {
     m_stats = {};
     m_lightEnv = lightEnv;
+    m_drawCallIndex = 0;
 
     // 确保至少有一个默认方向光
     if (m_lightEnv.lightCount == 0) {
@@ -357,12 +344,15 @@ PipelineState* SceneRenderer::selectEdgePipeline() const {
 void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList, PipelineState* pso, bool isEdge) {
     if (!item.geometry) return;
 
-    const auto* geo = item.geometry;
-    const auto* gpu = m_cache.getOrUpload(geo);
+    const auto* gpu = item.gpu;
     if (!gpu || !gpu->vertexBuffer) return;
 
-    // 更新 Object UBO
+    // 更新 Object UBO（ring buffer offset）
     if (m_objectBuffer && pso) {
+        uint32_t ringIndex = m_drawCallIndex % kMaxDrawCalls;
+        uint32_t objOffset = ringIndex * sizeof(ObjectUBO);
+        uint32_t matOffset = ringIndex * sizeof(MaterialUBO);
+
         ObjectUBO obj{};
         for (int i = 0; i < 16; ++i)
             obj.world[i] = static_cast<float>(glm::value_ptr(item.worldTransform)[i]);
@@ -370,51 +360,30 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList, Pipel
         Mat3 normalMat3 = glm::transpose(glm::inverse(Mat3(item.worldTransform)));
         for (int col = 0; col < 3; ++col)
             for (int row = 0; row < 3; ++row)
-                obj.normalMat[col * 3 + row] = static_cast<float>(normalMat3[col][row]);
+                obj.normalMat[col * 4 + row] = static_cast<float>(normalMat3[col][row]);
 
         obj.pickId = item.pickId;
-        m_objectBuffer->update(0, sizeof(ObjectUBO), &obj);
+        m_objectBuffer->update(objOffset, sizeof(ObjectUBO), &obj);
 
-        // 选中面或边线：覆盖材质为高亮色
+        // 材质：选中高亮 / 默认
         if (item.selected && m_materialBuffer) {
             MaterialUBO hl{};
             hl.baseColor[0] = 0.3f; hl.baseColor[1] = 0.6f; hl.baseColor[2] = 1.0f;
-            if (auto* dl = m_lightEnv.primaryDirectional()) {
-                hl.lightDir[0]  = static_cast<float>(dl->direction.x);
-                hl.lightDir[1]  = static_cast<float>(dl->direction.y);
-                hl.lightDir[2]  = static_cast<float>(dl->direction.z);
-                hl.lightColor[0] = static_cast<float>(dl->color.x * dl->intensity * 3.0f);
-                hl.lightColor[1] = static_cast<float>(dl->color.y * dl->intensity * 3.5f);
-                hl.lightColor[2] = static_cast<float>(dl->color.z * dl->intensity * 3.8f);
-            }
-            hl.ambientColor[0] = static_cast<float>(m_lightEnv.ambientColor.x * m_lightEnv.ambientIntensity);
-            hl.ambientColor[1] = static_cast<float>(m_lightEnv.ambientColor.y * m_lightEnv.ambientIntensity);
-            hl.ambientColor[2] = static_cast<float>(m_lightEnv.ambientColor.z * m_lightEnv.ambientIntensity);
+            fillLightingUBO(hl);
             hl.wireColor[0] = 0.2f; hl.wireColor[1] = 0.5f; hl.wireColor[2] = 1.0f;
-            m_materialBuffer->update(0, sizeof(MaterialUBO), &hl);
+            m_materialBuffer->update(matOffset, sizeof(MaterialUBO), &hl);
         } else if (m_materialBuffer) {
-            // 恢复默认材质
             MaterialUBO mat{};
             mat.baseColor[0] = 0.78f; mat.baseColor[1] = 0.78f; mat.baseColor[2] = 0.78f;
-            if (auto* dl = m_lightEnv.primaryDirectional()) {
-                mat.lightDir[0]  = static_cast<float>(dl->direction.x);
-                mat.lightDir[1]  = static_cast<float>(dl->direction.y);
-                mat.lightDir[2]  = static_cast<float>(dl->direction.z);
-                mat.lightColor[0] = static_cast<float>(dl->color.x * dl->intensity * 3.0f);
-                mat.lightColor[1] = static_cast<float>(dl->color.y * dl->intensity * 3.5f);
-                mat.lightColor[2] = static_cast<float>(dl->color.z * dl->intensity * 3.8f);
-            }
-            mat.ambientColor[0] = static_cast<float>(m_lightEnv.ambientColor.x * m_lightEnv.ambientIntensity);
-            mat.ambientColor[1] = static_cast<float>(m_lightEnv.ambientColor.y * m_lightEnv.ambientIntensity);
-            mat.ambientColor[2] = static_cast<float>(m_lightEnv.ambientColor.z * m_lightEnv.ambientIntensity);
+            fillLightingUBO(mat);
             mat.wireColor[0] = 0.10f; mat.wireColor[1] = 0.10f; mat.wireColor[2] = 0.10f;
-            m_materialBuffer->update(0, sizeof(MaterialUBO), &mat);
+            m_materialBuffer->update(matOffset, sizeof(MaterialUBO), &mat);
         }
 
         RHIDevice::UniformBufferBind uboBinds[] = {
-            { 0, m_cameraBuffer.get(),   0, m_cameraBuffer->desc().size },
-            { 1, m_objectBuffer.get(),   0, m_objectBuffer->desc().size },
-            { 2, m_materialBuffer.get(), 0, m_materialBuffer->desc().size },
+            { 0, m_cameraBuffer.get(),   0, sizeof(CameraUBO) },
+            { 1, m_objectBuffer.get(),   objOffset, sizeof(ObjectUBO) },
+            { 2, m_materialBuffer.get(), matOffset, sizeof(MaterialUBO) },
         };
         m_device->bindUniformBuffers(cmdList, pso, uboBinds, 3);
     }
@@ -444,6 +413,26 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList, Pipel
 
     ++m_stats.drawCalls;
     ++m_stats.items;
+    ++m_drawCallIndex;
+}
+
+// ============================================================
+// 光照 UBO 填充辅助
+// ============================================================
+
+void SceneRenderer::fillLightingUBO(MaterialUBO& mat) {
+    if (auto* dl = m_lightEnv.primaryDirectional()) {
+        mat.lightDir[0] = static_cast<float>(dl->direction.x);
+        mat.lightDir[1] = static_cast<float>(dl->direction.y);
+        mat.lightDir[2] = static_cast<float>(dl->direction.z);
+        float intensity = static_cast<float>(dl->intensity) * 3.5f;
+        mat.lightColor[0] = static_cast<float>(dl->color.x) * intensity;
+        mat.lightColor[1] = static_cast<float>(dl->color.y) * intensity;
+        mat.lightColor[2] = static_cast<float>(dl->color.z) * intensity;
+    }
+    mat.ambientColor[0] = static_cast<float>(m_lightEnv.ambientColor.x * m_lightEnv.ambientIntensity);
+    mat.ambientColor[1] = static_cast<float>(m_lightEnv.ambientColor.y * m_lightEnv.ambientIntensity);
+    mat.ambientColor[2] = static_cast<float>(m_lightEnv.ambientColor.z * m_lightEnv.ambientIntensity);
 }
 
 } // namespace MulanGeo::Engine

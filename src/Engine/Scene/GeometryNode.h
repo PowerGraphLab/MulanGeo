@@ -10,6 +10,7 @@
 #include "SceneNode.h"
 #include "../Geometry/MeshGeometry.h"
 #include "../Render/RenderGeometry.h"
+#include "../RHI/Device.h"
 
 #include <cstdint>
 #include <vector>
@@ -52,6 +53,17 @@ public:
     /// 获取缓存的边线渲染几何
     const RenderGeometry& cachedEdgeGeometry() const { return m_cachedEdgeGeo; }
 
+    // --- GPU 缓冲区（首次渲染时 lazy 上传）---
+
+    /// 确保面几何已上传到 GPU，返回 GPU 缓冲区指针
+    GpuGeometry* ensureGpuGeometry(RHIDevice* device);
+
+    /// 确保边线几何已上传到 GPU，返回 GPU 缓冲区指针
+    GpuGeometry* ensureGpuEdgeGeometry(RHIDevice* device);
+
+    /// 释放 GPU 缓冲区（场景切换时调用）
+    void releaseGpuResources();
+
     /// 是否有可渲染面数据
     bool hasRenderData() const { return m_cachedGeo.vertexCount > 0; }
 
@@ -82,6 +94,8 @@ public:
 private:
     RenderGeometry   m_cachedGeo;
     RenderGeometry   m_cachedEdgeGeo;
+    GpuGeometry      m_gpuGeo;
+    GpuGeometry      m_gpuEdgeGeo;
     uint16_t         m_materialIndex = 0xFFFF;
     std::vector<Face> m_faces;
 };

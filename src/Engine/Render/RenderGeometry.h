@@ -10,6 +10,7 @@
 #include "../Math/Math.h"
 #include "../RHI/VertexLayout.h"
 #include "../RHI/PipelineState.h"
+#include "../RHI/Device.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -43,11 +44,27 @@ struct RenderGeometry {
 };
 
 // ============================================================
+// GPU 端几何缓冲区 — 由 GeometryNode 持有，节点销毁时自动释放
+// ============================================================
+
+struct GpuGeometry {
+    ResourcePtr<Buffer> vertexBuffer;
+    ResourcePtr<Buffer> indexBuffer;
+    uint32_t vertexCount  = 0;
+    uint32_t indexCount   = 0;
+    uint32_t vertexStride = 0;
+    bool     uploaded     = false;  ///< 是否已上传到 GPU
+
+    bool isValid() const { return uploaded && vertexBuffer; }
+};
+
+// ============================================================
 // 绘制项 — 一次 draw call 的全部数据
 // ============================================================
 
 struct RenderItem {
     const RenderGeometry* geometry       = nullptr;
+    GpuGeometry*          gpu            = nullptr;   ///< 由 GeometryNode 持有
     Mat4                  worldTransform = Mat4(1.0);
     uint32_t              pickId         = 0;
     uint16_t              materialIndex  = 0xFFFF;  ///< 材质索引 (0xFFFF = 默认)

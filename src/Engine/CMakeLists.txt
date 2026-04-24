@@ -8,7 +8,6 @@ add_library(Engine STATIC
     Scene/GeometryNode.cpp
     Scene/Frustum.cpp
     Scene/Camera.cpp
-    Render/GeometryCache.cpp
     Render/SceneRenderer.cpp
     Render/EngineView.cpp
     Render/TextureLoader.cpp

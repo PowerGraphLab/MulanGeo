@@ -18,6 +18,7 @@
 #include "Frustum.h"
 #include "../Render/RenderGeometry.h"
 #include "../Scene/Camera.h"
+#include "../RHI/Device.h"
 
 #include <cstdint>
 
@@ -25,8 +26,8 @@ namespace MulanGeo::Engine {
 
 class CullVisitor {
 public:
-    CullVisitor(const Frustum& frustum, RenderQueue& queue)
-        : m_frustum(frustum), m_queue(queue) {}
+    CullVisitor(const Frustum& frustum, RenderQueue& queue, RHIDevice* device)
+        : m_frustum(frustum), m_queue(queue), m_device(device) {}
 
     /// 访问一个节点（在 traverse 回调中使用）
     void visit(SceneNode& node) {
@@ -43,6 +44,7 @@ public:
         if (geoNode->hasRenderData()) {
             RenderItem item;
             item.geometry       = &geoNode->cachedRenderGeometry();
+            item.gpu            = geoNode->ensureGpuGeometry(m_device);
             item.worldTransform = geoNode->worldTransform();
             item.pickId         = geoNode->pickId();
             item.materialIndex  = geoNode->materialIndex();
@@ -55,6 +57,7 @@ public:
         if (geoNode->hasEdgeData()) {
             RenderItem edgeItem;
             edgeItem.geometry       = &geoNode->cachedEdgeGeometry();
+            edgeItem.gpu            = geoNode->ensureGpuEdgeGeometry(m_device);
             edgeItem.worldTransform = geoNode->worldTransform();
             edgeItem.pickId         = geoNode->pickId();
             edgeItem.materialIndex  = geoNode->materialIndex();
@@ -68,6 +71,7 @@ public:
 private:
     const Frustum& m_frustum;
     RenderQueue&   m_queue;
+    RHIDevice*     m_device;
 };
 
 } // namespace MulanGeo::Engine
