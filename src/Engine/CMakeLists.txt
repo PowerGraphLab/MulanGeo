@@ -13,10 +13,11 @@ add_library(Engine STATIC
     Render/EngineView.cpp
     Render/TextureLoader.cpp
     Render/TextureCache.cpp
-    Render/MaterialCache.cpp
-    Render/MaterialInstance.cpp
-    Render/MaterialSerializer.cpp
-    Render/MaterialLibrary.cpp
+    # Material system
+    Render/Material/MaterialCache.cpp
+    Render/Material/MaterialInstance.cpp
+    Render/Material/MaterialSerializer.cpp
+    Render/Material/MaterialLibrary.cpp
     # Vulkan backend
     RHI/Vulkan/VKBuffer.cpp
     RHI/Vulkan/VKTexture.cpp
