@@ -30,7 +30,7 @@ void VKRenderTarget::resize(uint32_t width, uint32_t height) {
 
 void VKRenderTarget::beginRenderPass(CommandList* cmd) {
     auto* vkCmd = static_cast<VKCommandList*>(cmd);
-    vkCmd->beginRenderPass(
+    vkCmd->beginVkRenderPass(
         m_renderPass,
         m_framebuffer,
         m_desc.width,

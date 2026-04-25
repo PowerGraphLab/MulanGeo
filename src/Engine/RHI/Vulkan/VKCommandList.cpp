@@ -1,6 +1,7 @@
 #include "VKCommandList.h"
 #include "VKTexture.h"
 #include "VKDescriptorAllocator.h"
+#include "VKDevice.h"
 
 namespace MulanGeo::Engine {
 
@@ -230,7 +231,7 @@ void VKCommandList::clearStencil(uint8_t) {
     // 通过 renderPass 的 clearValue 实现
 }
 
-void VKCommandList::beginRenderPass(vk::RenderPass renderPass, vk::Framebuffer framebuffer,
+void VKCommandList::beginVkRenderPass(vk::RenderPass renderPass, vk::Framebuffer framebuffer,
                                      uint32_t width, uint32_t height,
                                      const std::array<float, 4>& clearColor,
                                      float clearDepth) {
@@ -299,6 +300,74 @@ void VKCommandList::bindDescriptorSet(vk::PipelineLayout layout, vk::DescriptorS
                                        uint32_t firstSet) {
     m_cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                    layout, firstSet, 1, &set, 0, nullptr);
+}
+
+// ============================================================
+// Stage 3: RHI beginRenderPass / endRenderPass
+// ============================================================
+
+void VKCommandList::beginRenderPass(const RenderPassBeginInfo& info) {
+    assert(m_ownerDevice && "VKCommandList needs ownerDevice for RenderPass/Framebuffer cache");
+
+    // 收集 color attachment 的格式和 ImageView
+    std::array<TextureFormat, RenderPassBeginInfo::kMaxColorTargets> colorFmts{};
+    std::array<vk::ImageView, 9> views{};  // 8 color + 1 depth
+    uint8_t viewCount = 0;
+
+    for (uint8_t i = 0; i < info.colorCount; ++i) {
+        auto* tex = static_cast<VKTexture*>(info.colorAttachments[i].target);
+        assert(tex && "Color attachment must not be null");
+        colorFmts[i] = tex->format();
+        views[viewCount++] = tex->view();
+    }
+
+    // Depth attachment
+    TextureFormat depthFmt = TextureFormat::Unknown;
+    bool hasDepth = (info.depthAttachment.target != nullptr);
+    if (hasDepth) {
+        auto* depthTex = static_cast<VKTexture*>(info.depthAttachment.target);
+        depthFmt = depthTex->format();
+        views[viewCount++] = depthTex->view();
+    }
+
+    // 确定 finalLayout 和 loadOp/storeOp
+    vk::AttachmentLoadOp colorLoadOp = toVkLoadOp(info.colorAttachments[0].loadAction);
+    vk::AttachmentStoreOp colorStoreOp = toVkStoreOp(info.colorAttachments[0].storeAction);
+    vk::ImageLayout colorFinalLayout = info.presentSource
+        ? vk::ImageLayout::ePresentSrcKHR
+        : vk::ImageLayout::eShaderReadOnlyOptimal;
+
+    // 从 device cache 获取 RenderPass
+    vk::RenderPass renderPass = m_ownerDevice->getOrCreateRenderPass(
+        std::span<const TextureFormat>(colorFmts.data(), info.colorCount),
+        depthFmt, hasDepth, colorLoadOp, colorStoreOp, colorFinalLayout);
+
+    // 从 device cache 获取 Framebuffer
+    vk::Framebuffer framebuffer = m_ownerDevice->getOrCreateFramebuffer(
+        renderPass,
+        std::span<const vk::ImageView>(views.data(), viewCount),
+        info.width, info.height);
+
+    // 构造 clear values
+    std::array<vk::ClearValue, 9> clearValues;
+    for (uint8_t i = 0; i < info.colorCount; ++i) {
+        clearValues[i].color = vk::ClearColorValue(std::array<float, 4>{
+            info.clearColor[0], info.clearColor[1], info.clearColor[2], info.clearColor[3]});
+    }
+    if (hasDepth) {
+        clearValues[info.colorCount].depthStencil =
+            vk::ClearDepthStencilValue(info.clearDepth, info.clearStencil);
+    }
+
+    // 录制 vkCmdBeginRenderPass
+    vk::RenderPassBeginInfo rpBegin;
+    rpBegin.renderPass      = renderPass;
+    rpBegin.framebuffer     = framebuffer;
+    rpBegin.renderArea      = vk::Rect2D({0, 0}, {info.width, info.height});
+    rpBegin.clearValueCount = info.colorCount + (hasDepth ? 1 : 0);
+    rpBegin.pClearValues    = clearValues.data();
+
+    m_cmdBuffer.beginRenderPass(rpBegin, vk::SubpassContents::eInline);
 }
 
 } // namespace MulanGeo::Engine

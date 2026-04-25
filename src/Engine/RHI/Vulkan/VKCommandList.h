@@ -17,6 +17,7 @@
 namespace MulanGeo::Engine {
 
 class VKDescriptorAllocator;
+class VKDevice;
 
 class VKCommandList : public CommandList {
 public:
@@ -81,14 +82,20 @@ public:
     void clearDepth(float depth) override;
     void clearStencil(uint8_t stencil) override;
 
-    // --- Vulkan 特有：开始/结束 RenderPass ---
-    void beginRenderPass(vk::RenderPass renderPass, vk::Framebuffer framebuffer,
-                         uint32_t width, uint32_t height,
-                         const std::array<float, 4>& clearColor = {0.15f, 0.15f, 0.15f, 1.0f},
-                         float clearDepth = 1.0f);
-    void endRenderPass();
+    // --- Vulkan 特有：开始/结束 RenderPass（底层，被 RHI override 调用）---
+    void beginVkRenderPass(vk::RenderPass renderPass, vk::Framebuffer framebuffer,
+                           uint32_t width, uint32_t height,
+                           const std::array<float, 4>& clearColor = {0.15f, 0.15f, 0.15f, 1.0f},
+                           float clearDepth = 1.0f);
+    void endRenderPass() override;
+
+    // --- RenderPass (Stage 3 RHI override) ---
+    void beginRenderPass(const RenderPassBeginInfo& info) override;
 
     vk::PipelineLayout currentLayout() const { return m_currentLayout; }
+
+    /// 设置所属 VKDevice（用于访问 RenderPass/Framebuffer cache）
+    void setOwnerDevice(VKDevice* dev) { m_ownerDevice = dev; }
 
     /// 绑定 descriptor set 到当前管线
     void bindDescriptorSet(vk::PipelineLayout layout, vk::DescriptorSet set,
@@ -101,6 +108,7 @@ private:
     vk::PipelineLayout      m_currentLayout;
     vk::DescriptorSetLayout m_currentDescSetLayout;
     VKDescriptorAllocator*  m_allocator = nullptr;
+    VKDevice*               m_ownerDevice = nullptr;
     bool                    m_ownsPool;
 };
 

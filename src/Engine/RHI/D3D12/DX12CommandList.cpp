@@ -200,7 +200,87 @@ void DX12CommandList::clearDepth(float depth) {
 }
 
 void DX12CommandList::clearStencil(uint8_t stencil) {
-    // 由 SwapChain/RenderTarget 在 beginRenderPass 中处理
+    // 由 beginRenderPass 中处理
+}
+
+// ============================================================
+// Stage 3: RenderPass
+// ============================================================
+
+void DX12CommandList::beginRenderPass(const RenderPassBeginInfo& info) {
+    auto* cl = m_cmdList.Get();
+    m_rpPresentSource = info.presentSource;
+
+    // Color attachment barrier: current → RENDER_TARGET
+    for (uint8_t i = 0; i < info.colorCount; ++i) {
+        auto* tex = static_cast<DX12Texture*>(info.colorAttachments[i].target);
+        if (!tex) continue;
+
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource   = tex->resource();
+        barrier.Transition.StateBefore = tex->state();
+        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        cl->ResourceBarrier(1, &barrier);
+        tex->setState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+        // Clear
+        if (info.colorAttachments[i].loadAction == LoadAction::Clear) {
+            cl->ClearRenderTargetView(tex->rtv(), info.clearColor, 0, nullptr);
+        }
+    }
+
+    // Depth attachment
+    D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
+    D3D12_CPU_DESCRIPTOR_HANDLE* pDSV = nullptr;
+    if (info.depthAttachment.target) {
+        auto* depthTex = static_cast<DX12Texture*>(info.depthAttachment.target);
+
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource   = depthTex->resource();
+        barrier.Transition.StateBefore = depthTex->state();
+        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+        cl->ResourceBarrier(1, &barrier);
+        depthTex->setState(D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+        if (info.depthAttachment.loadAction == LoadAction::Clear) {
+            cl->ClearDepthStencilView(depthTex->dsv(),
+                D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+                info.clearDepth, info.clearStencil, 0, nullptr);
+        }
+        dsvHandle = depthTex->dsv();
+        pDSV = &dsvHandle;
+    }
+
+    // Set render targets (use first color attachment's RTV)
+    DX12Texture* colorTex = nullptr;
+    if (info.colorCount > 0) {
+        colorTex = static_cast<DX12Texture*>(info.colorAttachments[0].target);
+        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = colorTex->rtv();
+        cl->OMSetRenderTargets(1, &rtvHandle, FALSE, pDSV);
+    }
+
+    m_rpColorTex = colorTex;
+}
+
+void DX12CommandList::endRenderPass() {
+    if (!m_rpColorTex) return;
+    auto* cl = m_cmdList.Get();
+
+    D3D12_RESOURCE_STATES targetState = m_rpPresentSource
+        ? D3D12_RESOURCE_STATE_PRESENT
+        : D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource   = m_rpColorTex->resource();
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    barrier.Transition.StateAfter  = targetState;
+    cl->ResourceBarrier(1, &barrier);
+    m_rpColorTex->setState(targetState);
+
+    m_rpColorTex = nullptr;
 }
 
 } // namespace MulanGeo::Engine

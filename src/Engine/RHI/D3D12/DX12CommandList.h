@@ -11,6 +11,8 @@
 
 namespace MulanGeo::Engine {
 
+class DX12Texture;  // forward declaration
+
 class DX12CommandList final : public CommandList {
 public:
     /// 创建独立的 CommandList（拥有自己的 cmd allocator 和 cmd list）
@@ -50,6 +52,10 @@ public:
     void clearDepth(float depth) override;
     void clearStencil(uint8_t stencil) override;
 
+    // --- RenderPass (Stage 3) ---
+    void beginRenderPass(const RenderPassBeginInfo& info) override;
+    void endRenderPass() override;
+
     ID3D12GraphicsCommandList* commandList() const { return m_cmdList.Get(); }
 
     /// 设置内部命令列表（帧循环中使用外部 cmd list）
@@ -59,6 +65,8 @@ private:
     ComPtr<ID3D12GraphicsCommandList> m_cmdList;
     bool m_ownsCmdList = true;  // 是否在析构时释放
     uint32_t m_cachedStride = 0;  // 从 PSO vertexLayout 缓存的 stride
+    bool m_rpPresentSource = false; // Stage 3: endRenderPass barrier 方向
+    DX12Texture* m_rpColorTex = nullptr; // Stage 3: 当前 render pass 的 color texture
 };
 
 } // namespace MulanGeo::Engine

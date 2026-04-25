@@ -8,6 +8,8 @@
 #include "GLCommandList.h"
 #include "GLBuffer.h"
 #include "GLPipelineState.h"
+#include "GLTexture.h"
+#include "GLRenderTarget.h"
 #include "../Buffer.h"
 #include "../RenderTypes.h"
 #include "../VertexFormat.h"
@@ -365,6 +367,43 @@ GLenum GLCommandList::indexTypeToGLFormat(IndexType type) {
     case IndexType::UInt32: return GL_UNSIGNED_INT;
     default:                return GL_UNSIGNED_INT;
     }
+}
+
+void GLCommandList::beginRenderPass(const RenderPassBeginInfo& info) {
+    // GL FBO selection:
+    // - Swapchain (presentSource=true): bind default framebuffer (0)
+    // - RenderTarget: use nativeHandle (set by GLRenderTarget convenience method)
+    GLuint fbo = static_cast<GLuint>(info.nativeHandle);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    glViewport(0, 0,
+               static_cast<GLsizei>(info.width),
+               static_cast<GLsizei>(info.height));
+
+    // Perform clears based on LoadAction
+    GLbitfield clearBits = 0;
+    for (uint32_t i = 0; i < info.colorCount; ++i) {
+        if (info.colorAttachments[i].loadAction == LoadAction::Clear) {
+            glClearColor(info.clearColor[0], info.clearColor[1],
+                         info.clearColor[2], info.clearColor[3]);
+            clearBits |= GL_COLOR_BUFFER_BIT;
+        }
+    }
+    if (info.depthAttachment.target && info.depthAttachment.loadAction == LoadAction::Clear) {
+        glClearDepthf(info.clearDepth);
+        clearBits |= GL_DEPTH_BUFFER_BIT;
+    }
+    if (clearBits != 0) {
+        glClear(clearBits);
+    }
+
+    // Mark viewport dirty since we overrode it
+    m_viewportDirty = true;
+}
+
+void GLCommandList::endRenderPass() {
+    // GL has no explicit render pass end. Reset to default FBO.
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 } // namespace MulanGeo::Engine

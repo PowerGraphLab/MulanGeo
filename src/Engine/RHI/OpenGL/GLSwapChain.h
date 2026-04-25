@@ -48,6 +48,7 @@ public:
     const SwapChainDesc& desc() const override { return m_desc; }
 
     Texture* currentBackBuffer() override { return nullptr; } // 默认 FBO，无独立 Texture 对象
+    Texture* depthTexture() override { return nullptr; }     // 默认 FBO 的 depth buffer
 
     void present() override;
 

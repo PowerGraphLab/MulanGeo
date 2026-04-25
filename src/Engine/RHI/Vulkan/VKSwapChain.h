@@ -46,6 +46,10 @@ public:
         return nullptr;
     }
 
+    Texture* depthTexture() override {
+        return m_depthTexture ? m_depthTexture.get() : nullptr;
+    }
+
     bool acquireNextImage(vk::Semaphore imageAvailable);
     void presentWithSemaphores(vk::Semaphore renderFinished);
     void present() override;

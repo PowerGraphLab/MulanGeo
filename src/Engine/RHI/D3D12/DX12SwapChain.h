@@ -28,6 +28,9 @@ public:
 
     const SwapChainDesc& desc() const override { return m_desc; }
     Texture* currentBackBuffer() override;
+    Texture* depthTexture() override {
+        return m_depthTexture ? m_depthTexture.get() : nullptr;
+    }
     void present() override;
     void resize(uint32_t width, uint32_t height) override;
 

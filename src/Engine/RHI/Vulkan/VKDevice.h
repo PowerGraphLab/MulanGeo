@@ -100,7 +100,19 @@ public:
     vk::RenderPass getOrCreateRenderPass(
         std::span<const TextureFormat> colorFormats,
         TextureFormat depthFormat,
-        bool depthEnable);
+        bool depthEnable,
+        vk::AttachmentLoadOp colorLoadOp = vk::AttachmentLoadOp::eClear,
+        vk::AttachmentStoreOp colorStoreOp = vk::AttachmentStoreOp::eStore,
+        vk::ImageLayout colorFinalLayout = vk::ImageLayout::eColorAttachmentOptimal);
+
+    // --- Framebuffer Cache (Stage 3) ---
+    vk::Framebuffer getOrCreateFramebuffer(
+        vk::RenderPass renderPass,
+        std::span<const vk::ImageView> attachments,
+        uint32_t width, uint32_t height);
+
+    /// 清空 Framebuffer Cache（resize 时调用）
+    void clearFramebufferCache();
 
 private:
     void init(const CreateInfo& ci);
@@ -149,6 +161,9 @@ private:
         uint8_t                      colorCount  = 0;
         TextureFormat                depthFormat = TextureFormat::Unknown;
         bool                         depthEnable = false;
+        vk::AttachmentLoadOp         colorLoadOp    = vk::AttachmentLoadOp::eClear;
+        vk::AttachmentStoreOp        colorStoreOp   = vk::AttachmentStoreOp::eStore;
+        vk::ImageLayout              colorFinalLayout = vk::ImageLayout::eColorAttachmentOptimal;
 
         bool operator==(const RenderPassKey&) const = default;
     };
@@ -156,6 +171,21 @@ private:
         size_t operator()(const RenderPassKey& k) const noexcept;
     };
     std::unordered_map<RenderPassKey, vk::RenderPass, RenderPassKeyHash> m_renderPassCache;
+
+    // --- Framebuffer Cache (Stage 3) ---
+    struct FramebufferKey {
+        vk::RenderPass                    renderPass = nullptr;
+        std::array<vk::ImageView, 9>      attachments{}; // 8 color + 1 depth
+        uint8_t                           attachmentCount = 0;
+        uint32_t                          width  = 0;
+        uint32_t                          height = 0;
+
+        bool operator==(const FramebufferKey&) const = default;
+    };
+    struct FramebufferKeyHash {
+        size_t operator()(const FramebufferKey& k) const noexcept;
+    };
+    std::unordered_map<FramebufferKey, vk::Framebuffer, FramebufferKeyHash> m_framebufferCache;
 };
 
 } // namespace MulanGeo::Engine

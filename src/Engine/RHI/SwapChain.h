@@ -42,6 +42,9 @@ public:
     // 获取当前后缓冲（作为 RenderTarget 绑定）
     virtual Texture* currentBackBuffer() = 0;
 
+    /// Depth 纹理（可能返回 nullptr — 无深度时）
+    virtual Texture* depthTexture() = 0;
+
     // 呈现
     virtual void present() = 0;
 

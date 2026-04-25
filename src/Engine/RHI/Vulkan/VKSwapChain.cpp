@@ -51,7 +51,7 @@ void VKSwapChain::present() {
 void VKSwapChain::beginRenderPass(CommandList* cmd) {
     auto* vkCmd = static_cast<VKCommandList*>(cmd);
     auto& cc = m_renderConfig.clearColor;
-    vkCmd->beginRenderPass(
+    vkCmd->beginVkRenderPass(
         m_renderPass,
         m_framebuffers[m_currentImageIndex],
         m_swapchainExtent.width,

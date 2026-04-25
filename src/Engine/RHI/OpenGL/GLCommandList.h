@@ -120,6 +120,10 @@ public:
     /// 清除模板缓冲区
     void clearStencil(uint8_t stencil) override;
 
+    // --- RenderPass (Stage 3) ---
+    void beginRenderPass(const RenderPassBeginInfo& info) override;
+    void endRenderPass() override;
+
     // --- OpenGL 特有接口 ---
 
     /// 获取当前绑定的管线状态

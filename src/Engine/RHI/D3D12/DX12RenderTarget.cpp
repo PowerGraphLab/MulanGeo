@@ -34,6 +34,7 @@ void DX12RenderTarget::createResources() {
     m_device->CreateRenderTargetView(
         m_colorTexture->resource(), nullptr, rtvDesc.cpu);
     m_rtvHandle = rtvDesc.cpu;
+    m_colorTexture->setRTV(rtvDesc.cpu);
 
     if (m_desc.hasDepth) {
         // Depth texture
@@ -53,6 +54,7 @@ void DX12RenderTarget::createResources() {
         m_device->CreateDepthStencilView(
             m_depthTexture->resource(), &dsvViewDesc, dsvDesc.cpu);
         m_dsvHandle = dsvDesc.cpu;
+        m_depthTexture->setDSV(dsvDesc.cpu);
     }
 }
 

@@ -152,4 +152,25 @@ inline vk::Format vertexFormatToVk(VertexFormat fmt) {
     }
 }
 
+// ============================================================
+// RenderPass 转换 (Stage 3)
+// ============================================================
+
+inline vk::AttachmentLoadOp toVkLoadOp(LoadAction action) {
+    switch (action) {
+        case LoadAction::Clear:    return vk::AttachmentLoadOp::eClear;
+        case LoadAction::Load:     return vk::AttachmentLoadOp::eLoad;
+        case LoadAction::DontCare: return vk::AttachmentLoadOp::eDontCare;
+    }
+    return vk::AttachmentLoadOp::eClear;
+}
+
+inline vk::AttachmentStoreOp toVkStoreOp(StoreAction action) {
+    switch (action) {
+        case StoreAction::Store:    return vk::AttachmentStoreOp::eStore;
+        case StoreAction::DontCare: return vk::AttachmentStoreOp::eDontCare;
+    }
+    return vk::AttachmentStoreOp::eStore;
+}
+
 } // namespace MulanGeo::Engine

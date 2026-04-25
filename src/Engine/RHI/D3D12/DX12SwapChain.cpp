@@ -75,9 +75,8 @@ void DX12SwapChain::createBackBuffers() {
         // 创建 DX12Texture 包装
         TextureDesc texDesc = TextureDesc::renderTarget(m_desc.width, m_desc.height, m_desc.format);
         m_backBufferTextures[i] = std::make_unique<DX12Texture>(texDesc, m_device);
-        // 替换内部 resource 为 swap chain buffer
-        // DX12Texture 内部已有 resource，但我们需要用 swap chain 的
-        // 这里简化：直接在 render pass 中使用 m_backBuffers
+        m_backBufferTextures[i]->setRTV(rtvDesc.cpu);
+        m_backBufferTextures[i]->setState(D3D12_RESOURCE_STATE_PRESENT);
     }
 
     // Depth stencil
@@ -87,6 +86,7 @@ void DX12SwapChain::createBackBuffers() {
 
     auto dsvDesc = m_dsvHeap->allocate();
     m_device->CreateDepthStencilView(m_depthTexture->resource(), nullptr, dsvDesc.cpu);
+    m_depthTexture->setDSV(dsvDesc.cpu);
 }
 
 void DX12SwapChain::releaseBackBuffers() {

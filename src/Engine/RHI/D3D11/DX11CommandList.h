@@ -52,6 +52,10 @@ public:
     void clearDepth(float depth) override;
     void clearStencil(uint8_t stencil) override;
 
+    // --- RenderPass (Stage 3) ---
+    void beginRenderPass(const RenderPassBeginInfo& info) override;
+    void endRenderPass() override;
+
     ID3D11DeviceContext* context() const { return m_ctx; }
 
 private:

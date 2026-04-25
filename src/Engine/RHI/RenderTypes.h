@@ -14,6 +14,60 @@
 namespace MulanGeo::Engine {
 
 // ============================================================
+// 前向声明
+// ============================================================
+
+class Texture;
+
+// ============================================================
+// RenderPass 加载/存储操作
+// ============================================================
+
+enum class LoadAction : uint8_t {
+    Clear    = 0,  // 开始时清除
+    Load     = 1,  // 开始时加载上一帧内容
+    DontCare = 2,  // 内容未定义
+};
+
+enum class StoreAction : uint8_t {
+    Store    = 0,  // 结束时存储内容
+    DontCare = 1,  // 结束时内容不需要
+};
+
+// ============================================================
+// RenderPass 附件信息
+// ============================================================
+
+struct RenderPassAttachmentInfo {
+    Texture*    target      = nullptr;
+    LoadAction  loadAction  = LoadAction::Clear;
+    StoreAction storeAction = StoreAction::Store;
+};
+
+// ============================================================
+// RenderPass 开始信息（Stage 3: CommandList::beginRenderPass 参数）
+// ============================================================
+
+struct RenderPassBeginInfo {
+    static constexpr uint8_t kMaxColorTargets = 8;
+
+    RenderPassAttachmentInfo colorAttachments[kMaxColorTargets] = {};
+    uint8_t                  colorCount    = 0;
+    RenderPassAttachmentInfo depthAttachment = {};  // target==nullptr 表示无深度
+
+    float    clearColor[4] = { 0.15f, 0.15f, 0.15f, 1.0f };
+    float    clearDepth    = 1.0f;
+    uint8_t  clearStencil  = 0;
+
+    bool     presentSource  = false;  // true = swapchain 模式，VK finalLayout=PresentSrcKHR
+    uint32_t width          = 0;
+    uint32_t height         = 0;
+
+    // Backend-specific native handle (e.g., GL FBO, unused by VK/DX)
+    uint64_t nativeHandle   = 0;
+};
+
+// ============================================================
 // 视口与裁剪矩形
 // ============================================================
 

@@ -23,10 +23,22 @@ public:
     D3D12_RESOURCE_STATES state() const { return m_state; }
     void setState(D3D12_RESOURCE_STATES s) { m_state = s; }
 
+    // RTV/DSV 句柄（由 SwapChain/RenderTarget 在创建时设置）
+    void setRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle) { m_rtv = handle; m_hasRTV = true; }
+    void setDSV(D3D12_CPU_DESCRIPTOR_HANDLE handle) { m_dsv = handle; m_hasDSV = true; }
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv() const { return m_rtv; }
+    D3D12_CPU_DESCRIPTOR_HANDLE dsv() const { return m_dsv; }
+    bool hasRTV() const { return m_hasRTV; }
+    bool hasDSV() const { return m_hasDSV; }
+
 private:
     TextureDesc               m_desc;
     ComPtr<ID3D12Resource>    m_resource;
     D3D12_RESOURCE_STATES     m_state;
+    D3D12_CPU_DESCRIPTOR_HANDLE m_rtv = {};
+    D3D12_CPU_DESCRIPTOR_HANDLE m_dsv = {};
+    bool m_hasRTV = false;
+    bool m_hasDSV = false;
 };
 
 } // namespace MulanGeo::Engine

@@ -157,21 +157,30 @@ size_t VKDevice::RenderPassKeyHash::operator()(const RenderPassKey& k) const noe
     combine(k.colorCount);
     combine(static_cast<uint8_t>(k.depthFormat));
     combine(k.depthEnable);
+    combine(static_cast<uint32_t>(k.colorLoadOp));
+    combine(static_cast<uint32_t>(k.colorStoreOp));
+    combine(static_cast<uint32_t>(k.colorFinalLayout));
     return h;
 }
 
 vk::RenderPass VKDevice::getOrCreateRenderPass(
     std::span<const TextureFormat> colorFormats,
     TextureFormat depthFormat,
-    bool depthEnable)
+    bool depthEnable,
+    vk::AttachmentLoadOp colorLoadOp,
+    vk::AttachmentStoreOp colorStoreOp,
+    vk::ImageLayout colorFinalLayout)
 {
     RenderPassKey key;
     key.colorCount = static_cast<uint8_t>(std::min(colorFormats.size(), key.colorFormats.size()));
     for (uint8_t i = 0; i < key.colorCount; ++i) {
         key.colorFormats[i] = colorFormats[i];
     }
-    key.depthFormat = depthFormat;
-    key.depthEnable = depthEnable;
+    key.depthFormat      = depthFormat;
+    key.depthEnable      = depthEnable;
+    key.colorLoadOp      = colorLoadOp;
+    key.colorStoreOp     = colorStoreOp;
+    key.colorFinalLayout = colorFinalLayout;
 
     auto it = m_renderPassCache.find(key);
     if (it != m_renderPassCache.end()) {
@@ -187,12 +196,12 @@ vk::RenderPass VKDevice::getOrCreateRenderPass(
         vk::AttachmentDescription colorAtt;
         colorAtt.format         = toVkFormat(key.colorFormats[i]);
         colorAtt.samples        = vk::SampleCountFlagBits::e1;
-        colorAtt.loadOp         = vk::AttachmentLoadOp::eClear;
-        colorAtt.storeOp        = vk::AttachmentStoreOp::eStore;
+        colorAtt.loadOp         = key.colorLoadOp;
+        colorAtt.storeOp        = key.colorStoreOp;
         colorAtt.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
         colorAtt.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
         colorAtt.initialLayout  = vk::ImageLayout::eUndefined;
-        colorAtt.finalLayout    = vk::ImageLayout::eColorAttachmentOptimal;
+        colorAtt.finalLayout    = key.colorFinalLayout;
         attachments.push_back(colorAtt);
 
         colorRefs.push_back({i, vk::ImageLayout::eColorAttachmentOptimal});
@@ -252,6 +261,7 @@ void VKDevice::beginFrame() {
 
     m_frameCmdList = std::make_unique<VKCommandList>(m_device, frame.cmdBuffer(),
                                                     m_descriptorAllocators[m_currentFrame].get());
+    m_frameCmdList->setOwnerDevice(this);
 
     if (!m_swapChains.empty()) {
         auto* sc = m_swapChains[0];
@@ -330,6 +340,62 @@ void VKDevice::initFrameContexts(uint32_t count) {
     m_frameCmdList = std::make_unique<VKCommandList>(
         m_device, currentFrameContext().cmdBuffer(),
         m_descriptorAllocators[m_currentFrame].get());
+}
+
+// ============================================================
+// Framebuffer Cache (Stage 3)
+// ============================================================
+
+size_t VKDevice::FramebufferKeyHash::operator()(const FramebufferKey& k) const noexcept {
+    size_t h = 0;
+    auto combine = [&](auto v) { h ^= std::hash<decltype(v)>{}(v) + 0x9e3779b9 + (h << 6) + (h >> 2); };
+    combine(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(static_cast<VkRenderPass>(k.renderPass))));
+    for (uint8_t i = 0; i < k.attachmentCount; ++i) {
+        combine(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(static_cast<VkImageView>(k.attachments[i]))));
+    }
+    combine(k.attachmentCount);
+    combine(k.width);
+    combine(k.height);
+    return h;
+}
+
+vk::Framebuffer VKDevice::getOrCreateFramebuffer(
+    vk::RenderPass renderPass,
+    std::span<const vk::ImageView> attachments,
+    uint32_t width, uint32_t height)
+{
+    FramebufferKey key;
+    key.renderPass      = renderPass;
+    key.attachmentCount = static_cast<uint8_t>(std::min(attachments.size(), key.attachments.size()));
+    for (uint8_t i = 0; i < key.attachmentCount; ++i) {
+        key.attachments[i] = attachments[i];
+    }
+    key.width  = width;
+    key.height = height;
+
+    auto it = m_framebufferCache.find(key);
+    if (it != m_framebufferCache.end()) {
+        return it->second;
+    }
+
+    vk::FramebufferCreateInfo fbCI;
+    fbCI.renderPass      = renderPass;
+    fbCI.attachmentCount = key.attachmentCount;
+    fbCI.pAttachments    = key.attachments.data();
+    fbCI.width           = width;
+    fbCI.height          = height;
+    fbCI.layers          = 1;
+
+    vk::Framebuffer fb = m_device.createFramebuffer(fbCI);
+    m_framebufferCache.emplace(key, fb);
+    return fb;
+}
+
+void VKDevice::clearFramebufferCache() {
+    for (auto& [k, fb] : m_framebufferCache) {
+        if (fb) m_device.destroyFramebuffer(fb);
+    }
+    m_framebufferCache.clear();
 }
 
 } // namespace MulanGeo::Engine

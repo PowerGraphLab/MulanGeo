@@ -189,4 +189,41 @@ void DX11CommandList::clearStencil(uint8_t stencil)
     (void)stencil;
 }
 
+// ============================================================
+// Stage 3: RenderPass
+// ============================================================
+
+void DX11CommandList::beginRenderPass(const RenderPassBeginInfo& info) {
+    // D3D11: OMSetRenderTargets + Clear
+
+    ID3D11RenderTargetView* rtv = nullptr;
+    ID3D11DepthStencilView* dsv = nullptr;
+
+    if (info.colorCount > 0 && info.colorAttachments[0].target) {
+        auto* tex = static_cast<DX11Texture*>(info.colorAttachments[0].target);
+        rtv = tex->rtv();
+
+        if (info.colorAttachments[0].loadAction == LoadAction::Clear) {
+            m_ctx->ClearRenderTargetView(rtv, info.clearColor);
+        }
+    }
+
+    if (info.depthAttachment.target) {
+        auto* depthTex = static_cast<DX11Texture*>(info.depthAttachment.target);
+        dsv = depthTex->dsv();
+
+        if (info.depthAttachment.loadAction == LoadAction::Clear) {
+            m_ctx->ClearDepthStencilView(dsv,
+                D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+                info.clearDepth, info.clearStencil);
+        }
+    }
+
+    m_ctx->OMSetRenderTargets(1, &rtv, dsv);
+}
+
+void DX11CommandList::endRenderPass() {
+    // D3D11: no explicit end — render targets remain bound until changed
+}
+
 } // namespace MulanGeo::Engine
