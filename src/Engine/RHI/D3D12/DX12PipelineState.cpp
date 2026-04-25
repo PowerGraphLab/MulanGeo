@@ -34,15 +34,26 @@ void DX12PipelineState::createRootSignature() {
         if (db.count == 0) continue;
 
         D3D12_ROOT_PARAMETER param = {};
-        param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;  // CBV (b-register)
-        param.Descriptor.ShaderRegister = db.binding;
-        param.Descriptor.RegisterSpace  = 0;
+
+        switch (db.type) {
+        case DescriptorType::UniformBuffer:
+            param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+            param.Descriptor.ShaderRegister = db.binding;
+            param.Descriptor.RegisterSpace  = 0;
+            break;
+        case DescriptorType::TextureSRV:
+            // 未来：descriptor table (SRV)
+            continue;
+        case DescriptorType::Sampler:
+            // 未来：static sampler 或 descriptor table
+            continue;
+        }
 
         // Shader stages
         D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL;
-        if (db.stages == DescriptorBinding::kStageVertex) {
+        if (db.stages == PipelineBinding::kStageVertex) {
             visibility = D3D12_SHADER_VISIBILITY_VERTEX;
-        } else if (db.stages == DescriptorBinding::kStageFragment) {
+        } else if (db.stages == PipelineBinding::kStageFragment) {
             visibility = D3D12_SHADER_VISIBILITY_PIXEL;
         }
         param.ShaderVisibility = visibility;

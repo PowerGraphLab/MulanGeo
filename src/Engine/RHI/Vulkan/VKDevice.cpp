@@ -35,7 +35,11 @@ ResourcePtr<PipelineState> VKDevice::createPipelineState(const GraphicsPipelineD
 }
 
 ResourcePtr<CommandList> VKDevice::createCommandList() {
-    return ResourcePtr<CommandList>(new VKCommandList(m_device, m_graphicsQueueFamily), DeviceResourceDeleter{shared_from_this()});
+    // 独立命令列表需要独立的 descriptor allocator
+    auto* allocator = new VKDescriptorAllocator(m_device);
+    m_standaloneAllocators.emplace_back(allocator);
+    auto* cmd = new VKCommandList(m_device, m_graphicsQueueFamily, allocator);
+    return ResourcePtr<CommandList>(cmd, DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<SwapChain> VKDevice::createSwapChain(const SwapChainDesc& desc) {
@@ -149,7 +153,8 @@ void VKDevice::beginFrame() {
 
     m_descriptorAllocators[m_currentFrame]->resetPools();
 
-    m_frameCmdList = std::make_unique<VKCommandList>(frame.cmdBuffer());
+    m_frameCmdList = std::make_unique<VKCommandList>(m_device, frame.cmdBuffer(),
+                                                    m_descriptorAllocators[m_currentFrame].get());
 
     if (!m_swapChains.empty()) {
         auto* sc = m_swapChains[0];
@@ -206,28 +211,6 @@ void VKDevice::submitOffscreen() {
 }
 
 // ============================================================
-// Descriptor 绑定
-// ============================================================
-
-void VKDevice::bindUniformBuffers(CommandList* cmd, PipelineState* pso,
-                                  const UniformBufferBind* binds, uint32_t count) {
-    auto* vkPso  = static_cast<VKPipelineState*>(pso);
-    auto* vkCmd  = static_cast<VKCommandList*>(cmd);
-
-    vk::DescriptorSet descSet = m_descriptorAllocators[m_currentFrame]->allocate(
-        vkPso->descriptorSetLayout());
-
-    for (uint32_t i = 0; i < count; ++i) {
-        auto* vkBuf = static_cast<VKBuffer*>(binds[i].buffer);
-        m_descriptorAllocators[m_currentFrame]->bindUniformBuffer(
-            descSet, binds[i].binding,
-            vkBuf->vkBuffer(), binds[i].offset, binds[i].size);
-    }
-
-    vkCmd->bindDescriptorSet(vkPso->layout(), descSet);
-}
-
-// ============================================================
 // 帧上下文初始化
 // ============================================================
 
@@ -248,7 +231,8 @@ void VKDevice::initFrameContexts(uint32_t count) {
 
     m_currentFrame = 0;
     m_frameCmdList = std::make_unique<VKCommandList>(
-        currentFrameContext().cmdBuffer());
+        m_device, currentFrameContext().cmdBuffer(),
+        m_descriptorAllocators[m_currentFrame].get());
 }
 
 } // namespace MulanGeo::Engine

@@ -68,11 +68,6 @@ public:
     void submitAndPresent(SwapChain* swapchain) override;
     void submitOffscreen() override;
 
-    // --- Descriptor 绑定 ---
-    void bindUniformBuffers(CommandList* cmd, PipelineState* pso,
-                            const UniformBufferBind* binds,
-                            uint32_t count) override;
-
 private:
     void init(const DeviceCreateInfo& ci);
 

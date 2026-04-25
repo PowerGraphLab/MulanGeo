@@ -107,12 +107,6 @@ public:
     void submitAndPresent(SwapChain* swapchain) override;
     void submitOffscreen() override;
 
-    // --- Descriptor 绑定 ---
-
-    void bindUniformBuffers(CommandList* cmd, PipelineState* pso,
-                            const UniformBufferBind* binds,
-                            uint32_t count) override;
-
     // --- OpenGL 特有访问器 ---
 
 #ifdef _WIN32

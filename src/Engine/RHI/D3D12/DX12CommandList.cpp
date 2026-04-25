@@ -125,6 +125,18 @@ void DX12CommandList::updateBuffer(Buffer* buffer, uint32_t offset,
     dx12Buf->update(offset, size, data);
 }
 
+void DX12CommandList::bindResources(const BindGroup& group) {
+    for (uint8_t i = 0; i < group.count; ++i) {
+        const auto& e = group.entries[i];
+        if (e.buffer) {
+            auto* dx12Buf = static_cast<DX12Buffer*>(e.buffer);
+            m_cmdList->SetGraphicsRootConstantBufferView(
+                e.binding, dx12Buf->gpuAddress() + e.offset);
+        }
+        // texture → 未来用 SetGraphicsRootDescriptorTable
+    }
+}
+
 void DX12CommandList::transitionResource(Buffer* buffer, ResourceState newState) {
     auto* dx12Buf = static_cast<DX12Buffer*>(buffer);
     D3D12_RESOURCE_BARRIER barrier = {};

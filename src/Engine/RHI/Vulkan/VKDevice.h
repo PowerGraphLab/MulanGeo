@@ -80,10 +80,6 @@ public:
     void submitAndPresent(SwapChain* swapchain) override;
     void submitOffscreen() override;
 
-    // --- Descriptor 绑定 ---
-    void bindUniformBuffers(CommandList* cmd, PipelineState* pso,
-                            const UniformBufferBind* binds, uint32_t count) override;
-
     // --- Vulkan 特有访问器 ---
     vk::Instance         vkInstance()          const { return m_instance; }
     vk::PhysicalDevice   vkPhysicalDevice()    const { return m_physicalDevice; }
@@ -127,6 +123,7 @@ private:
     std::unique_ptr<VKUploadContext>             m_uploadContext;
     std::vector<std::unique_ptr<VKFrameContext>> m_frameContexts;
     std::vector<std::unique_ptr<VKDescriptorAllocator>> m_descriptorAllocators; // per-frame
+    std::vector<std::unique_ptr<VKDescriptorAllocator>> m_standaloneAllocators; // 独立 cmd list
     std::unique_ptr<VKCommandList>               m_frameCmdList;
 
     uint32_t                    m_frameCount   = 2;

@@ -1,5 +1,6 @@
 #include "VKCommandList.h"
 #include "VKTexture.h"
+#include "VKDescriptorAllocator.h"
 
 namespace MulanGeo::Engine {
 
@@ -22,8 +23,24 @@ VKCommandList::VKCommandList(vk::Device device, uint32_t queueFamilyIndex)
     m_cmdBuffer = cmdBuffers[0];
 }
 
-VKCommandList::VKCommandList(vk::CommandBuffer externalCmd)
-    : m_cmdBuffer(externalCmd)
+VKCommandList::VKCommandList(vk::Device device, uint32_t queueFamilyIndex,
+                             VKDescriptorAllocator* allocator)
+    : VKCommandList(device, queueFamilyIndex)
+{
+    m_allocator = allocator;
+}
+
+VKCommandList::VKCommandList(vk::Device device, vk::CommandBuffer externalCmd)
+    : m_device(device)
+    , m_cmdBuffer(externalCmd)
+    , m_ownsPool(false)
+{}
+
+VKCommandList::VKCommandList(vk::Device device, vk::CommandBuffer externalCmd,
+                             VKDescriptorAllocator* allocator)
+    : m_device(device)
+    , m_cmdBuffer(externalCmd)
+    , m_allocator(allocator)
     , m_ownsPool(false)
 {}
 
@@ -52,6 +69,7 @@ void VKCommandList::setPipelineState(PipelineState* pso) {
     auto* vkPso = static_cast<VKPipelineState*>(pso);
     m_cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vkPso->pipeline());
     m_currentLayout = vkPso->layout();
+    m_currentDescSetLayout = vkPso->descriptorSetLayout();
 }
 
 void VKCommandList::setViewport(const Viewport& vp) {
@@ -228,6 +246,37 @@ void VKCommandList::beginRenderPass(vk::RenderPass renderPass, vk::Framebuffer f
     rpBegin.pClearValues    = clearValues;
 
     m_cmdBuffer.beginRenderPass(rpBegin, vk::SubpassContents::eInline);
+}
+
+void VKCommandList::bindResources(const BindGroup& group) {
+    if (group.count == 0 || !m_allocator) return;
+
+    vk::DescriptorSet set = m_allocator->allocate(m_currentDescSetLayout);
+
+    // 每个 entry 独立提交 update，避免数组未初始化问题
+    for (uint8_t i = 0; i < group.count; ++i) {
+        const auto& e = group.entries[i];
+
+        if (e.buffer) {
+            auto* vkBuf = static_cast<VKBuffer*>(e.buffer);
+            vk::DescriptorBufferInfo bufInfo(vkBuf->vkBuffer(), e.offset, e.size);
+            vk::WriteDescriptorSet write(set, e.binding, 0, 1,
+                vk::DescriptorType::eUniformBuffer,
+                nullptr, &bufInfo, nullptr);
+            m_device.updateDescriptorSets(1, &write, 0, nullptr);
+        } else if (e.texture) {
+            auto* vkTex = static_cast<VKTexture*>(e.texture);
+            vk::DescriptorImageInfo imgInfo(nullptr, vkTex->view(),
+                vk::ImageLayout::eShaderReadOnlyOptimal);
+            vk::WriteDescriptorSet write(set, e.binding, 0, 1,
+                vk::DescriptorType::eSampledImage,
+                &imgInfo, nullptr, nullptr);
+            m_device.updateDescriptorSets(1, &write, 0, nullptr);
+        }
+    }
+
+    m_cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+                                   m_currentLayout, 0, 1, &set, 0, nullptr);
 }
 
 void VKCommandList::endRenderPass() {

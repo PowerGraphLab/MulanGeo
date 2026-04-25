@@ -53,6 +53,11 @@ public:
     /// 设置当前管线状态
     void setPipelineState(PipelineState* pso) override;
 
+    // --- 资源绑定 ---
+
+    /// 绑定资源组（UBO / Texture）
+    void bindResources(const BindGroup& group) override;
+
     // --- 视口 / 裁剪 ---
 
     /// 设置视口

@@ -51,9 +51,11 @@ VKDevice::VKDevice(const DeviceCreateInfo& ci) {
 VKDevice::~VKDevice() {
     m_device.waitIdle();
 
+    m_frameCmdList.reset();
     m_frameContexts.clear();
     m_uploadContext.reset();
     m_descriptorAllocators.clear();
+    m_standaloneAllocators.clear();
     while (!m_swapChains.empty()) {
         destroy(m_swapChains.back());
     }

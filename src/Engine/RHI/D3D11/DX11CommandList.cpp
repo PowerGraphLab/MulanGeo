@@ -70,6 +70,23 @@ void DX11CommandList::setScissorRect(const ScissorRect& rect)
     m_ctx->RSSetScissorRects(1, &d3dRect);
 }
 
+void DX11CommandList::bindResources(const BindGroup& group)
+{
+    for (uint8_t i = 0; i < group.count; ++i)
+    {
+        const auto& e = group.entries[i];
+        if (e.buffer) {
+            auto* dx11Buf = static_cast<DX11Buffer*>(e.buffer);
+            ID3D11Buffer* buf = dx11Buf->buffer();
+            if (!buf) continue;
+            uint32_t slot = e.binding;
+            m_ctx->VSSetConstantBuffers(slot, 1, &buf);
+            m_ctx->PSSetConstantBuffers(slot, 1, &buf);
+        }
+        // texture → VSSetShaderResources + PSSetShaderResources
+    }
+}
+
 void DX11CommandList::setVertexBuffer(uint32_t slot, Buffer* buffer, uint32_t offset)
 {
     auto* dx11Buf = static_cast<DX11Buffer*>(buffer);

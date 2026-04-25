@@ -44,10 +44,13 @@ void VKPipelineState::build(vk::RenderPass renderPass, uint32_t subpass) {
         // 从 pipeline desc 中读取 descriptor bindings
         for (uint8_t i = 0; i < m_desc.descriptorBindingCount; ++i) {
             const auto& b = m_desc.descriptorBindings[i];
-            bindings.push_back({b.binding,
-                                b.count > 0 ? vk::DescriptorType::eUniformBuffer
-                                            : vk::DescriptorType::eUniformBuffer,
-                                b.count,
+            vk::DescriptorType vkType;
+            switch (b.type) {
+            case DescriptorType::UniformBuffer: vkType = vk::DescriptorType::eUniformBuffer; break;
+            case DescriptorType::TextureSRV:    vkType = vk::DescriptorType::eSampledImage; break;
+            case DescriptorType::Sampler:       vkType = vk::DescriptorType::eSampler; break;
+            }
+            bindings.push_back({b.binding, vkType, b.count,
                                 static_cast<vk::ShaderStageFlags>(b.stages)});
         }
     } else {

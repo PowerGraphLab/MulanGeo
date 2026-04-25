@@ -164,10 +164,10 @@ void SceneRenderer::createPSOs() {
         desc.depthStencil.depthEnable = true;
         desc.depthStencil.depthFunc   = CompareFunc::LessEqual;
 
-        using DB = DescriptorBinding;
-        desc.descriptorBindings[0] = {0, 1, DB::kStageVertex | DB::kStageFragment};
-        desc.descriptorBindings[1] = {1, 1, DB::kStageVertex | DB::kStageFragment};
-        desc.descriptorBindings[2] = {2, 1, DB::kStageFragment};
+        using PB = PipelineBinding;
+        desc.descriptorBindings[0] = {.binding = 0, .count = 1, .stages = PB::kStageVertex | PB::kStageFragment};
+        desc.descriptorBindings[1] = {.binding = 1, .count = 1, .stages = PB::kStageVertex | PB::kStageFragment};
+        desc.descriptorBindings[2] = {.binding = 2, .count = 1, .type = DescriptorType::UniformBuffer, .stages = PB::kStageFragment};
         desc.descriptorBindingCount = 3;
         return desc;
     };
@@ -416,12 +416,11 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList,
 
     // --- 3. 绑定 UBO ---
 
-    RHIDevice::UniformBufferBind uboBinds[] = {
-        { 0, m_sceneBuffer.get(),    0,           sizeof(SceneUBO) },
-        { 1, m_objectBuffer.get(),   objOffset,   sizeof(ObjectUBO) },
-        { 2, m_materialBuffer.get(), matOffset,    sizeof(MaterialUBO) },
-    };
-    m_device->bindUniformBuffers(cmdList, pso, uboBinds, 3);
+    BindGroup bindGroup;
+    bindGroup.addUBO(0, m_sceneBuffer.get(),    0,          sizeof(SceneUBO))
+             .addUBO(1, m_objectBuffer.get(),   objOffset,  sizeof(ObjectUBO))
+             .addUBO(2, m_materialBuffer.get(), matOffset,  sizeof(MaterialUBO));
+    cmdList->bindResources(bindGroup);
 
     // --- 4. 绘制 ---
 

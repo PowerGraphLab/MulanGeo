@@ -65,6 +65,20 @@ void GLCommandList::setScissorRect(const ScissorRect& rect) {
     m_scissorDirty = true;
 }
 
+void GLCommandList::bindResources(const BindGroup& group) {
+    for (uint8_t i = 0; i < group.count; ++i) {
+        const auto& e = group.entries[i];
+        if (e.buffer) {
+            GLuint glBuf = static_cast<GLBuffer*>(e.buffer)->handle();
+            glBindBufferRange(GL_UNIFORM_BUFFER, e.binding,
+                              glBuf,
+                              static_cast<GLintptr>(e.offset),
+                              static_cast<GLsizeiptr>(e.size));
+        }
+        // texture → glActiveTexture + glBindTexture
+    }
+}
+
 void GLCommandList::setVertexBuffer(uint32_t slot, Buffer* buffer,
                                     uint32_t offset) {
     if (slot >= MAX_VERTEX_BUFFERS) {

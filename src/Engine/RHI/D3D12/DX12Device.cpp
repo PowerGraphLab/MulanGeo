@@ -254,22 +254,4 @@ void DX12Device::submitOffscreen() {
     m_commandQueue->Signal(frame->fence()->fence(), fenceVal);
 }
 
-// ============================================================
-// Descriptor 绑定
-// ============================================================
-
-void DX12Device::bindUniformBuffers(CommandList* cmd, PipelineState* pso,
-                                     const UniformBufferBind* binds,
-                                     uint32_t count) {
-    auto* dx12Cmd = static_cast<DX12CommandList*>(cmd);
-    auto* cl = dx12Cmd->commandList();
-
-    for (uint32_t i = 0; i < count; ++i) {
-        auto* dx12Buf = static_cast<DX12Buffer*>(binds[i].buffer);
-        cl->SetGraphicsRootConstantBufferView(
-            binds[i].binding,
-            dx12Buf->gpuAddress() + binds[i].offset);
-    }
-}
-
 } // namespace MulanGeo::Engine

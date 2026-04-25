@@ -16,13 +16,23 @@
 
 namespace MulanGeo::Engine {
 
+class VKDescriptorAllocator;
+
 class VKCommandList : public CommandList {
 public:
     /// 独立模式：自己创建 command pool + buffer
     VKCommandList(vk::Device device, uint32_t queueFamilyIndex);
 
+    /// 独立模式 + descriptor allocator（用于 bindResources）
+    VKCommandList(vk::Device device, uint32_t queueFamilyIndex,
+                  VKDescriptorAllocator* allocator);
+
     /// 外部 buffer 模式：引用 frameContext 的 command buffer
-    explicit VKCommandList(vk::CommandBuffer externalCmd);
+    VKCommandList(vk::Device device, vk::CommandBuffer externalCmd);
+
+    /// 外部 buffer 模式 + descriptor allocator（帧循环用）
+    VKCommandList(vk::Device device, vk::CommandBuffer externalCmd,
+                  VKDescriptorAllocator* allocator);
 
     ~VKCommandList();
 
@@ -34,6 +44,9 @@ public:
 
     // --- 管线状态 ---
     void setPipelineState(PipelineState* pso) override;
+
+    // --- 资源绑定 ---
+    void bindResources(const BindGroup& group) override;
 
     // --- 视口 / 裁剪 ---
     void setViewport(const Viewport& vp) override;
@@ -82,11 +95,13 @@ public:
                            uint32_t firstSet = 0);
 
 private:
-    vk::Device          m_device;
-    vk::CommandPool     m_pool;
-    vk::CommandBuffer   m_cmdBuffer;
-    vk::PipelineLayout  m_currentLayout;
-    bool                m_ownsPool;
+    vk::Device              m_device;
+    vk::CommandPool         m_pool;
+    vk::CommandBuffer       m_cmdBuffer;
+    vk::PipelineLayout      m_currentLayout;
+    vk::DescriptorSetLayout m_currentDescSetLayout;
+    VKDescriptorAllocator*  m_allocator = nullptr;
+    bool                    m_ownsPool;
 };
 
 } // namespace MulanGeo::Engine

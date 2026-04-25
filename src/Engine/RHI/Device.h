@@ -181,18 +181,6 @@ public:
     // Descriptor 绑定（UBO / Texture 统一绑定接口）
     // ============================================================
 
-    /// 将一组 UBO 绑定到当前管线（VK: allocate descriptor set + bind）
-    struct UniformBufferBind {
-        uint32_t binding;
-        Buffer*  buffer;
-        uint32_t offset;
-        uint32_t size;
-    };
-
-    virtual void bindUniformBuffers(CommandList* cmd, PipelineState* pso,
-                                    const UniformBufferBind* binds,
-                                    uint32_t count) = 0;
-
 protected:
     RHIDevice() = default;
     RHIDevice(const RHIDevice&) = delete;

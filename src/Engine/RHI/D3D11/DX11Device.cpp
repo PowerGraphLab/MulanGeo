@@ -266,28 +266,4 @@ void DX11Device::submitOffscreen()
     }
 }
 
-// ============================================================
-// Descriptor 绑定 — D3D11 uses classic constant buffer slots
-// ============================================================
-
-void DX11Device::bindUniformBuffers(CommandList*, PipelineState*,
-                                     const UniformBufferBind* binds,
-                                     uint32_t count)
-{
-    if (!m_immediateCtx || !binds) return;
-
-    for (uint32_t i = 0; i < count; ++i)
-    {
-        if (!binds[i].buffer) continue;
-        auto* dx11Buf = static_cast<DX11Buffer*>(binds[i].buffer);
-        ID3D11Buffer* buf = dx11Buf->buffer();
-        if (!buf) continue;
-        uint32_t slot = binds[i].binding;
-
-        // Bind to both VS and PS stages
-        m_immediateCtx->VSSetConstantBuffers(slot, 1, &buf);
-        m_immediateCtx->PSSetConstantBuffers(slot, 1, &buf);
-    }
-}
-
 } // namespace MulanGeo::Engine

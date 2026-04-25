@@ -356,23 +356,4 @@ void GLDevice::submitOffscreen() {
     glFlush();
 }
 
-// ============================================================
-// Descriptor 绑定
-// ============================================================
-
-void GLDevice::bindUniformBuffers(CommandList* /*cmd*/, PipelineState* /*pso*/,
-                                  const UniformBufferBind* binds,
-                                  uint32_t count) {
-    // OpenGL: 直接 glBindBufferRange 到 UBO binding points
-    for (uint32_t i = 0; i < count; ++i) {
-        if (!binds[i].buffer) continue;
-        GLuint glBuf = static_cast<GLBuffer*>(binds[i].buffer)->handle();
-        glBindBufferRange(GL_UNIFORM_BUFFER,
-                          static_cast<GLuint>(binds[i].binding),
-                          glBuf,
-                          static_cast<GLintptr>(binds[i].offset),
-                          static_cast<GLsizeiptr>(binds[i].size));
-    }
-}
-
 } // namespace MulanGeo::Engine

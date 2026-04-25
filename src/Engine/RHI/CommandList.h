@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Buffer.h"
+#include "BindGroup.h"
 #include "RenderTypes.h"
 
 #include <cstdint>
@@ -38,6 +39,11 @@ public:
     // --- 管线状态 ---
 
     virtual void setPipelineState(PipelineState* pso) = 0;
+
+    // --- 资源绑定 ---
+
+    /// 绑定资源组（UBO / Texture / 未来 Sampler）
+    virtual void bindResources(const BindGroup& group) = 0;
 
     // --- 视口 / 裁剪 ---
 
