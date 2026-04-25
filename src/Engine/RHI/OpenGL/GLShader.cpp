@@ -1,6 +1,6 @@
 /**
  * @file GLShader.cpp
- * @brief OpenGL ×ÅÉ«Æ÷ÊµÏÖ ¡ª SPIR-V Ô¤±àÒëÖ§³Ö
+ * @brief OpenGL ç€è‰²å™¨å®ç° â€” SPIR-V é¢„ç¼–è¯‘æ”¯æŒ
  * @author terry
  * @date 2026-04-16
  * 
@@ -19,13 +19,13 @@
 namespace MulanGeo::Engine {
 
 // ================================================================
-// ¹¹Ôì / Îö¹¹
+// æ„é€  / ææ„
 // ================================================================
 
 GLShader::GLShader(const ShaderDesc& desc)
     : m_desc(desc)
 {
-    // ½öÔÚ GL 4.6+ Ê±Ö§³Ö SPIR-V
+    // ä»…åœ¨ GL 4.6+ æ—¶æ”¯æŒ SPIR-V
 #ifndef __EMSCRIPTEN__
     if (!isSPIRVSupported()) {
         std::fprintf(stderr,
@@ -34,16 +34,16 @@ GLShader::GLShader(const ShaderDesc& desc)
         return;
     }
 
-    // ´Ó×Ö½ÚÂë¼ÓÔØ
+    // ä»å­—èŠ‚ç åŠ è½½
     if (desc.byteCode && desc.byteCodeSize > 0) {
         createFromSPIRV(desc.byteCode, desc.byteCodeSize);
     }
-    // ´ÓÎÄ¼ş¼ÓÔØ
+    // ä»æ–‡ä»¶åŠ è½½
     else if (!desc.filePath.empty()) {
         loadSPIRVFromFile(desc.filePath);
     }
 #else
-    // WebGL/Emscripten: ½öÖ§³Ö GLSL ES Ô´Âë£¬SPIR-V ²»¿ÉÓÃ
+    // WebGL/Emscripten: ä»…æ”¯æŒ GLSL ES æºç ï¼ŒSPIR-V ä¸å¯ç”¨
     if (!desc.filePath.empty()) {
         loadGLSLFromFile(desc.filePath);
     } else if (desc.byteCode && desc.byteCodeSize > 0) {
@@ -66,7 +66,7 @@ GLShader::~GLShader() {
 }
 
 // ================================================================
-// ´Ó SPIR-V ×Ö½ÚÂë´´½¨×ÅÉ«Æ÷
+// ä» SPIR-V å­—èŠ‚ç åˆ›å»ºç€è‰²å™¨
 // ================================================================
 
 void GLShader::createFromSPIRV(const uint8_t* spirvCode, uint32_t byteSize) {
@@ -75,7 +75,7 @@ void GLShader::createFromSPIRV(const uint8_t* spirvCode, uint32_t byteSize) {
         return;
     }
 
-    // ´´½¨×ÅÉ«Æ÷¶ÔÏó
+    // åˆ›å»ºç€è‰²å™¨å¯¹è±¡
     GLenum glShaderType = toGLShaderType(m_desc.type);
     m_shader = glCreateShader(glShaderType);
     if (m_shader == 0) {
@@ -84,18 +84,18 @@ void GLShader::createFromSPIRV(const uint8_t* spirvCode, uint32_t byteSize) {
     }
 
     #ifndef __EMSCRIPTEN__
-    // ¼ÓÔØ SPIR-V ¶ş½øÖÆ£¨GL 4.6+£©
+    // åŠ è½½ SPIR-V äºŒè¿›åˆ¶ï¼ˆGL 4.6+ï¼‰
     glShaderBinary(1, &m_shader, GL_SHADER_BINARY_FORMAT_SPIR_V,
                    spirvCode, byteSize);
 
-    // ÌØ»¯×ÅÉ«Æ÷£¨°ó¶¨ entry point£©
+    // ç‰¹åŒ–ç€è‰²å™¨ï¼ˆç»‘å®š entry pointï¼‰
     const char* entryPoint = m_desc.entryPoint.empty() ? "main"
                                                        : m_desc.entryPoint.data();
     glSpecializeShader(m_shader, entryPoint, 0, nullptr, nullptr);
 
     checkCompileError(m_shader, std::string(m_desc.name).c_str());
 #else
-    // WebGL ²»Ö§³Ö SPIR-V£¬´Ëº¯Êı²»Ó¦±»µ÷ÓÃ
+    // WebGL ä¸æ”¯æŒ SPIR-Vï¼Œæ­¤å‡½æ•°ä¸åº”è¢«è°ƒç”¨
     (void)spirvCode; (void)byteSize;
     std::fprintf(stderr, "[GLShader] createFromSPIRV called on WebGL - not supported\n");
     glDeleteShader(m_shader);
@@ -104,7 +104,7 @@ void GLShader::createFromSPIRV(const uint8_t* spirvCode, uint32_t byteSize) {
 }
 
 // ================================================================
-// ´ÓÎÄ¼ş¼ÓÔØ SPIR-V
+// ä»æ–‡ä»¶åŠ è½½ SPIR-V
 // ================================================================
 
 void GLShader::loadSPIRVFromFile(std::string_view filePath) {
@@ -120,7 +120,7 @@ void GLShader::loadSPIRVFromFile(std::string_view filePath) {
         return;
     }
 
-    // ¶ÁÈ¡ÎÄ¼ş´óĞ¡
+    // è¯»å–æ–‡ä»¶å¤§å°
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -133,7 +133,7 @@ void GLShader::loadSPIRVFromFile(std::string_view filePath) {
         return;
     }
 
-    // ¶ÁÈ¡ SPIR-V Êı¾İ
+    // è¯»å– SPIR-V æ•°æ®
     std::vector<uint8_t> spirvData(fileSize);
     if (fread(spirvData.data(), 1, fileSize, file) != static_cast<size_t>(fileSize)) {
         std::fprintf(stderr, "[GLShader] Failed to read SPIR-V file\n");
@@ -146,7 +146,7 @@ void GLShader::loadSPIRVFromFile(std::string_view filePath) {
 }
 
 // ================================================================
-// GLSL Ô´ÂëÂ·¾¶£¨WebGL / Emscripten£©
+// GLSL æºç è·¯å¾„ï¼ˆWebGL / Emscriptenï¼‰
 // ================================================================
 
 void GLShader::createFromGLSL(const char* source, int length) {
@@ -201,11 +201,11 @@ void GLShader::loadGLSLFromFile(std::string_view filePath) {
 }
 
 // ================================================================
-// ¼ì²é GL °æ±¾ÊÇ·ñÖ§³Ö SPIR-V
+// æ£€æŸ¥ GL ç‰ˆæœ¬æ˜¯å¦æ”¯æŒ SPIR-V
 // ================================================================
 
 bool GLShader::isSPIRVSupported() {
-    // GL 4.6+ ²ÅÄÜÊ¹ÓÃ glSpecializeShader()
+    // GL 4.6+ æ‰èƒ½ä½¿ç”¨ glSpecializeShader()
     GLint major = 0, minor = 0;
     glGetIntegerv(GL_MAJOR_VERSION, &major);
     glGetIntegerv(GL_MINOR_VERSION, &minor);
@@ -220,7 +220,7 @@ bool GLShader::isSPIRVSupported() {
 }
 
 // ================================================================
-// ½« ShaderType ×ª»»Îª OpenGL ³£Á¿
+// å°† ShaderType è½¬æ¢ä¸º OpenGL å¸¸é‡
 // ================================================================
 
 GLenum GLShader::toGLShaderType(ShaderType type) {
@@ -230,7 +230,7 @@ GLenum GLShader::toGLShaderType(ShaderType type) {
     case ShaderType::Pixel:  // Fragment
         return GL_FRAGMENT_SHADER;
 #ifndef __EMSCRIPTEN__
-    // WebGL ES3 ²»Ö§³Ö¼¸ºÎ/¼ÆËã/Ï¸·Ö×ÅÉ«Æ÷
+    // WebGL ES3 ä¸æ”¯æŒå‡ ä½•/è®¡ç®—/ç»†åˆ†ç€è‰²å™¨
     case ShaderType::Geometry:
         return GL_GEOMETRY_SHADER;
     case ShaderType::Compute:
@@ -247,7 +247,7 @@ GLenum GLShader::toGLShaderType(ShaderType type) {
 }
 
 // ================================================================
-// ¼ì²é×ÅÉ«Æ÷±àÒë/ÌØ»¯´íÎó
+// æ£€æŸ¥ç€è‰²å™¨ç¼–è¯‘/ç‰¹åŒ–é”™è¯¯
 // ================================================================
 
 void GLShader::checkCompileError(GLuint shader, const char* shaderName) {
