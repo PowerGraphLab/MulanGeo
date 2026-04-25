@@ -88,7 +88,8 @@ void VKSwapChain::createSwapChain() {
 
     vk::SurfaceFormatKHR surfaceFormat = formats[0];
     for (auto& f : formats) {
-        if (f.format == vk::Format::eB8G8R8A8Srgb &&
+        // 优先选 B8G8R8A8Unorm + SrgbNonlinear 色彩空间（clear 值直写，不做硬件 gamma）
+        if (f.format == vk::Format::eB8G8R8A8Unorm &&
             f.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) {
             surfaceFormat = f;
             break;

@@ -14,10 +14,12 @@ namespace MulanGeo::Engine
 
 DX11SwapChain::DX11SwapChain(const SwapChainDesc& desc, ID3D11Device* device,
                              IDXGIFactory2* factory, ID3D11DeviceContext* ctx,
-                             const NativeWindowHandle& window)
+                             const NativeWindowHandle& window,
+                             const RenderConfig& renderConfig)
     : m_desc(desc)
     , m_device(device)
     , m_ctx(ctx)
+    , m_renderConfig(renderConfig)
 {
     DXGI_SWAP_CHAIN_DESC1 scDesc = {};
     scDesc.Width              = desc.width;
@@ -105,7 +107,7 @@ void DX11SwapChain::beginRenderPass(CommandList* cmd)
 
     ctx->OMSetRenderTargets(1, &rtv, dsv);
 
-    ctx->ClearRenderTargetView(rtv, m_clearColor);
+    ctx->ClearRenderTargetView(rtv, m_renderConfig.clearColor);
     ctx->ClearDepthStencilView(dsv,
         D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 }

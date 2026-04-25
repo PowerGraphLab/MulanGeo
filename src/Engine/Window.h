@@ -17,7 +17,7 @@ namespace MulanGeo::Engine {
 
 struct RenderConfig {
     // --- 背景 ---
-    float clearColor[4] = { 0.12f, 0.13f, 0.18f, 1.0f };
+    float clearColor[4] = { 97.0f/255, 101.0f/255, 118.0f/255, 1.0f };
     float clearDepth    = 1.0f;
 
     // --- 抗锯齿 ---

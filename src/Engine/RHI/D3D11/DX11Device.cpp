@@ -170,7 +170,7 @@ ResourcePtr<SwapChain> DX11Device::createSwapChain(const SwapChainDesc& desc)
 {
     if (!m_device || !m_factory || !m_immediateCtx) return nullptr;
     return ResourcePtr<SwapChain>(new DX11SwapChain(desc, m_device.Get(), m_factory.Get(),
-                             m_immediateCtx.Get(), m_window), DeviceResourceDeleter{this});
+                             m_immediateCtx.Get(), m_window, m_renderConfig), DeviceResourceDeleter{this});
 }
 
 ResourcePtr<RenderTarget> DX11Device::createRenderTarget(const RenderTargetDesc& desc)

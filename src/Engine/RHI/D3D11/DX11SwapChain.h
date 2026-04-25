@@ -21,7 +21,8 @@ class DX11SwapChain final : public SwapChain
 public:
     DX11SwapChain(const SwapChainDesc& desc, ID3D11Device* device,
                   IDXGIFactory2* factory, ID3D11DeviceContext* ctx,
-                  const NativeWindowHandle& window);
+                  const NativeWindowHandle& window,
+                  const RenderConfig& renderConfig);
     ~DX11SwapChain() = default;
 
     const SwapChainDesc& desc() const override { return m_desc; }
@@ -44,7 +45,7 @@ private:
     std::unique_ptr<DX11Texture>        m_backBufferTexture;
     std::unique_ptr<DX11Texture>        m_depthTexture;
 
-    float m_clearColor[4] = { 0.15f, 0.15f, 0.15f, 1.0f };
+    RenderConfig                        m_renderConfig;
 };
 
 } // namespace MulanGeo::Engine

@@ -63,7 +63,7 @@ struct ViewConfig {
     bool     enableValidation = true;
 
     // --- 背景色 ---
-    float    clearColor[4] = { 0.12f, 0.13f, 0.18f, 1.0f };
+    float    clearColor[4] = { 97.0f/255, 101.0f/255, 118.0f/255, 1.0f };
 
     // --- 原生窗口信息（平台相关）---
 #ifdef _WIN32
