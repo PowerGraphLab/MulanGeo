@@ -288,6 +288,9 @@ void EngineView::clearScene() {
 // ============================================================
 
 void EngineView::cleanup() {
+    if (!m_initialized && !m_device) return;
+    if (m_device) m_device->waitIdle();
+
     if (m_scene) {
         m_scene->traverse([](SceneNode& node) {
             if (auto* geo = dynamic_cast<GeometryNode*>(&node)) {
