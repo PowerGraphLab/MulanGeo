@@ -79,14 +79,13 @@ void TrackballRotation::orbitToPoint(int x, int y, int viewW, int viewH) {
     Vec3 axis = glm::cross(curr, m_arcballPrev);
     double axisLen = glm::length(axis);
 
-    if (axisLen < 1e-10) {
-        m_arcballPrev = curr;
-        return;
-    }
+    if (axisLen < 1e-10) return;
 
-    double angle = std::asin(std::clamp(axisLen, -1.0, 1.0)) * m_arcballSpeed;
+    double dot = glm::dot(curr, m_arcballPrev);
+    double angle = std::atan2(axisLen, dot) * m_arcballSpeed;
 
-    Vec3 worldAxis = right() * axis.x + up() * axis.y + forward() * axis.z;
+    Vec3 ndcAxis = axis / axisLen;
+    Vec3 worldAxis = right() * ndcAxis.x + up() * ndcAxis.y + forward() * ndcAxis.z;
     worldAxis = glm::normalize(worldAxis);
 
     Quat deltaQ = glm::angleAxis(angle, worldAxis);

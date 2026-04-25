@@ -42,9 +42,9 @@ private:
     Vec3 arcballProject(int x, int y, int viewW, int viewH) const;
 
     Quat   m_rotation;
-    Vec3   m_arcballPrev  = {0, 0, 0};
+    Vec3   m_arcballPrev   = {0, 0, 0};
     bool   m_arcballActive = false;
-    double m_arcballSpeed = 2.25;
+    double m_arcballSpeed  = 1.75;
 };
 
 } // namespace MulanGeo::Engine
