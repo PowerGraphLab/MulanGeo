@@ -54,7 +54,9 @@ VKDevice::~VKDevice() {
     m_frameContexts.clear();
     m_uploadContext.reset();
     m_descriptorAllocators.clear();
-    m_swapChains.clear();
+    while (!m_swapChains.empty()) {
+        destroy(m_swapChains.back());
+    }
 
     // 销毁 per-image renderFinished 信号量
     for (auto& sem : m_renderFinishedSemaphores) {
@@ -327,6 +329,7 @@ void VKDevice::init(const CreateInfo& ci) {
     auto props               = m_physicalDevice.getProperties();
     m_caps.maxTextureSize    = props.limits.maxImageDimension2D;
     m_caps.maxTextureAniso   = static_cast<uint32_t>(props.limits.maxSamplerAnisotropy);
+    m_caps.minUniformBufferOffsetAlignment = props.limits.minUniformBufferOffsetAlignment;
     m_caps.depthClamp        = true;
     m_caps.geometryShader    = true;
     m_caps.computeShader     = true;

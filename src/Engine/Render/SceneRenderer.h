@@ -150,11 +150,13 @@ private:
     // --- UBO (单帧 ring buffer, fence 保证 GPU/CPU 同步) ---
 
     ResourcePtr<Buffer>         m_sceneBuffer;     // b0: sizeof(SceneUBO)
-    ResourcePtr<Buffer>         m_objectBuffer;    // b1: kMaxDrawCalls × sizeof(ObjectUBO)
-    ResourcePtr<Buffer>         m_materialBuffer;  // b2: kMaxDrawCalls × sizeof(MaterialUBO)
+    ResourcePtr<Buffer>         m_objectBuffer;    // b1: kMaxDrawCalls × objectStride
+    ResourcePtr<Buffer>         m_materialBuffer;  // b2: kMaxDrawCalls × materialStride
 
     static constexpr uint32_t   kMaxDrawCalls = 4096;
     uint32_t                    m_drawCallIndex = 0;
+    uint32_t                    m_objectStride  = sizeof(ObjectUBO);
+    uint32_t                    m_materialStride = sizeof(MaterialUBO);
 
     // --- 材质 ---
 

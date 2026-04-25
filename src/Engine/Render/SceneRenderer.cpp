@@ -193,14 +193,24 @@ void SceneRenderer::createPSOs() {
 // ============================================================
 
 void SceneRenderer::createUBOs() {
+    uint32_t align = m_device->capabilities().minUniformBufferOffsetAlignment;
+    if (align == 0) align = 256;
+
+    auto alignUp32 = [](uint32_t value, uint32_t alignment) -> uint32_t {
+        uint32_t mask = alignment - 1;
+        return (value + mask) & ~mask;
+    };
+    m_objectStride   = alignUp32(static_cast<uint32_t>(sizeof(ObjectUBO)),   align);
+    m_materialStride = alignUp32(static_cast<uint32_t>(sizeof(MaterialUBO)), align);
+
     m_sceneBuffer = m_device->createBuffer(
         BufferDesc::uniform(sizeof(SceneUBO), "SceneUBO"));
 
     m_objectBuffer = m_device->createBuffer(
-        BufferDesc::uniform(kMaxDrawCalls * sizeof(ObjectUBO), "ObjectUBO_Ring"));
+        BufferDesc::uniform(kMaxDrawCalls * m_objectStride, "ObjectUBO_Ring"));
 
     m_materialBuffer = m_device->createBuffer(
-        BufferDesc::uniform(kMaxDrawCalls * sizeof(MaterialUBO), "MaterialUBO_Ring"));
+        BufferDesc::uniform(kMaxDrawCalls * m_materialStride, "MaterialUBO_Ring"));
 
     // 默认光照
     if (m_lightEnv.lightCount == 0) {
@@ -356,8 +366,8 @@ void SceneRenderer::drawItem(const RenderItem& item, CommandList* cmdList,
     if (!m_objectBuffer || !pso) return;
 
     uint32_t ringIndex = m_drawCallIndex % kMaxDrawCalls;
-    uint32_t objOffset = ringIndex * sizeof(ObjectUBO);
-    uint32_t matOffset = ringIndex * sizeof(MaterialUBO);
+    uint32_t objOffset = ringIndex * m_objectStride;
+    uint32_t matOffset = ringIndex * m_materialStride;
 
     // --- 1. 写 ObjectUBO (每次必须) ---
 

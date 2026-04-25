@@ -6,6 +6,7 @@
  */
 
 #include "EngineView.h"
+#include "../Scene/GeometryNode.h"
 
 #include <cstdio>
 
@@ -285,7 +286,14 @@ void EngineView::clearScene() {
 // ============================================================
 
 void EngineView::cleanup() {
-    m_scene = nullptr;
+    if (m_scene) {
+        m_scene->traverse([](SceneNode& node) {
+            if (auto* geo = dynamic_cast<GeometryNode*>(&node)) {
+                geo->releaseGpuResources();
+            }
+        });
+        m_scene = nullptr;
+    }
     m_renderQueue.clear();
     m_sceneRenderer.reset();
 

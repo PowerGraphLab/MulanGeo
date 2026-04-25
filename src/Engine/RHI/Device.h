@@ -44,6 +44,7 @@ struct GPUDeviceCapabilities {
     GraphicsBackend backend = GraphicsBackend::OpenGL;
     uint32_t maxTextureSize    = 0;
     uint32_t maxTextureAniso   = 0;
+    uint32_t minUniformBufferOffsetAlignment = 256;
     bool     depthClamp        = false;
     bool     geometryShader    = false;
     bool     tessellationShader = false;
