@@ -8,12 +8,10 @@
 #pragma once
 
 #include "SceneNode.h"
-#include "../Geometry/MeshGeometry.h"
 #include "../Render/RenderGeometry.h"
 #include "../RHI/Device.h"
 
 #include <cstdint>
-#include <vector>
 
 namespace MulanGeo::Engine {
 
@@ -27,14 +25,6 @@ namespace MulanGeo::Engine {
 class GeometryNode final : public SceneNode {
 public:
     static constexpr MulanGeo::NodeType kType = MulanGeo::NodeType::Geometry;
-
-    // --- 面数据 ---
-
-    struct Face {
-        MeshGeometry* mesh     = nullptr;  // 不拥有，指向 Document 中的数据
-        uint32_t      pickId   = 0;        // 全局唯一拾取 ID
-        bool          selected = false;
-    };
 
     explicit GeometryNode(std::string name = {}, uint32_t pickId = 0)
         : SceneNode(kType, std::move(name), pickId) {}
@@ -74,30 +64,12 @@ public:
     uint16_t materialIndex() const { return m_materialIndex; }
     void setMaterialIndex(uint16_t idx) { m_materialIndex = idx; }
 
-    // --- 面管理 ---
-
-    void setFaces(std::vector<Face> faces) { m_faces = std::move(faces); }
-    const std::vector<Face>& faces() const { return m_faces; }
-    uint32_t faceCount() const { return static_cast<uint32_t>(m_faces.size()); }
-
-    /// 按 pickId 查找面（线性搜索，面数不多时足够）
-    Face* findFaceByPickId(uint32_t pickId);
-    const Face* findFaceByPickId(uint32_t pickId) const;
-
-    // --- 面选择 ---
-
-    void selectFace(uint32_t faceIndex);
-    void deselectFace(uint32_t faceIndex);
-    void toggleFace(uint32_t faceIndex);
-    void clearFaceSelection();
-
 private:
     RenderGeometry   m_cachedGeo;
     RenderGeometry   m_cachedEdgeGeo;
     GpuGeometry      m_gpuGeo;
     GpuGeometry      m_gpuEdgeGeo;
     uint16_t         m_materialIndex = 0xFFFF;
-    std::vector<Face> m_faces;
 };
 
 } // namespace MulanGeo::Engine
