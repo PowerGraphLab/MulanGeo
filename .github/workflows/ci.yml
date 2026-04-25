@@ -104,7 +104,7 @@ jobs:
         if: steps.cache-vulkan.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          $url = "https://sdk.lunarg.com/sdk/download/1.4.335.0/windows/VulkanSDK-1.4.335.0-Installer.exe"
+          $url = "https://sdk.lunarg.com/sdk/download/1.4.335.0/windows/vulkansdk-windows-X64-1.4.335.0.exe"
           $installer = "$env:RUNNER_TEMP\vulkan-installer.exe"
           Write-Host "Downloading Vulkan SDK 1.4.335.0..."
           Invoke-WebRequest -Uri $url -OutFile $installer
