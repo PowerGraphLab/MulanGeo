@@ -8,7 +8,6 @@
 #include "SceneBuilder.h"
 
 #include <MulanGeo/Engine/Render/EngineView.h>
-#include <MulanGeo/Engine/Scene/GeometryNode.h>
 
 UIDocument::UIDocument(MulanGeo::Document::Document* doc)
     : m_doc(doc)

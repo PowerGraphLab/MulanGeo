@@ -18,7 +18,6 @@ set(ENGINE_WASM_SOURCES
     # Scene
     ${ENGINE_SRC_DIR}/Scene/SceneNode.cpp
     ${ENGINE_SRC_DIR}/Scene/Scene.cpp
-    ${ENGINE_SRC_DIR}/Scene/GeometryNode.cpp
     ${ENGINE_SRC_DIR}/Scene/Frustum.cpp
     ${ENGINE_SRC_DIR}/Scene/Camera.cpp
     # Render

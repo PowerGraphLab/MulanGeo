@@ -9,6 +9,7 @@
 
 #include "../Math/Math.h"
 #include "../Math/AABB.h"
+#include "../Render/RenderGeometry.h"
 
 #include <cstdint>
 #include <string>
@@ -29,8 +30,10 @@ enum class NodeType : uint8_t {
 
 namespace MulanGeo::Engine {
 
+class RHIDevice;  // 前向声明
+
 // ============================================================
-// 场景节点基类 — 只管层级、变换、可见性
+// 场景节点 — 层级、变换、可见性、几何数据
 // ============================================================
 
 class Scene;  // 友元前向声明
@@ -38,7 +41,7 @@ class Scene;  // 友元前向声明
 class SceneNode {
     friend class Scene;
 public:
-    virtual ~SceneNode() = default;
+    ~SceneNode() = default;
 
     // --- 脏标记 ---
 
@@ -56,20 +59,13 @@ public:
 
     bool isType(MulanGeo::NodeType t) const { return m_type == t; }
 
-    // 安全转换（失败返回 nullptr）
-    template<typename T>
-    T* as() { return (m_type == T::kType) ? static_cast<T*>(this) : nullptr; }
-
-    template<typename T>
-    const T* as() const { return (m_type == T::kType) ? static_cast<const T*>(this) : nullptr; }
-
-    // --- 构造（子类调用）---
+    // --- 构造 ---
 
     static std::unique_ptr<SceneNode> create(MulanGeo::NodeType type, std::string name = {}, uint32_t pickId = 0) {
         return std::unique_ptr<SceneNode>(new SceneNode(type, std::move(name), pickId));
     }
 
-protected:
+private:
     explicit SceneNode(MulanGeo::NodeType type, std::string name = {}, uint32_t pickId = 0)
         : m_type(type), m_name(std::move(name)), m_pickId(pickId) {}
 
@@ -145,6 +141,24 @@ public:
     bool selected() const { return m_selected; }
     void setSelected(bool s) { m_selected = s; }
 
+    // --- 几何数据（由 SceneBuilder 一次性设置）---
+
+    void setCachedRenderGeometry(const RenderGeometry& geo) { m_cachedGeo = geo; }
+    const RenderGeometry& cachedRenderGeometry() const { return m_cachedGeo; }
+
+    void setCachedEdgeGeometry(const RenderGeometry& geo) { m_cachedEdgeGeo = geo; }
+    const RenderGeometry& cachedEdgeGeometry() const { return m_cachedEdgeGeo; }
+
+    GpuGeometry* ensureGpuGeometry(RHIDevice* device);
+    GpuGeometry* ensureGpuEdgeGeometry(RHIDevice* device);
+    void releaseGpuResources();
+
+    bool hasRenderData() const { return m_cachedGeo.vertexCount > 0; }
+    bool hasEdgeData() const { return m_cachedEdgeGeo.vertexCount > 0; }
+
+    uint16_t materialIndex() const { return m_materialIndex; }
+    void setMaterialIndex(uint16_t idx) { m_materialIndex = idx; }
+
 private:
     MulanGeo::NodeType m_type;
     std::string m_name;
@@ -161,6 +175,13 @@ private:
 
     SceneNode*  m_parent = nullptr;
     std::vector<std::unique_ptr<SceneNode>> m_children;
+
+    // 几何数据
+    RenderGeometry   m_cachedGeo;
+    RenderGeometry   m_cachedEdgeGeo;
+    GpuGeometry      m_gpuGeo;
+    GpuGeometry      m_gpuEdgeGeo;
+    uint16_t         m_materialIndex = 0xFFFF;
 };
 
 // DirtyFlag 位运算

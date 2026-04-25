@@ -14,7 +14,6 @@
 #pragma once
 
 #include "SceneNode.h"
-#include "GeometryNode.h"
 #include "Frustum.h"
 #include "../Render/RenderGeometry.h"
 #include "Camera/Camera.h"
@@ -33,35 +32,35 @@ public:
     void visit(SceneNode& node) {
         if (!node.isEffectivelyVisible()) return;
 
-        auto* geoNode = node.as<GeometryNode>();
-        if (!geoNode) return;
+        // 只处理有几何数据的节点
+        if (!node.hasRenderData() && !node.hasEdgeData()) return;
 
         // 视锥裁剪
-        const auto& bounds = geoNode->worldBoundingBox();
+        const auto& bounds = node.worldBoundingBox();
         if (!bounds.isEmpty() && !m_frustum.intersects(bounds)) return;
 
         // 面几何 → RenderQueue
-        if (geoNode->hasRenderData()) {
+        if (node.hasRenderData()) {
             RenderItem item;
-            item.geometry       = &geoNode->cachedRenderGeometry();
-            item.gpu            = geoNode->ensureGpuGeometry(m_device);
-            item.worldTransform = geoNode->worldTransform();
-            item.pickId         = geoNode->pickId();
-            item.materialIndex  = geoNode->materialIndex();
-            item.selected       = geoNode->selected();
+            item.geometry       = &node.cachedRenderGeometry();
+            item.gpu            = node.ensureGpuGeometry(m_device);
+            item.worldTransform = node.worldTransform();
+            item.pickId         = node.pickId();
+            item.materialIndex  = node.materialIndex();
+            item.selected       = node.selected();
 
             m_queue.add(item);
         }
 
         // 边线几何 → RenderQueue（标记 isEdge）
-        if (geoNode->hasEdgeData()) {
+        if (node.hasEdgeData()) {
             RenderItem edgeItem;
-            edgeItem.geometry       = &geoNode->cachedEdgeGeometry();
-            edgeItem.gpu            = geoNode->ensureGpuEdgeGeometry(m_device);
-            edgeItem.worldTransform = geoNode->worldTransform();
-            edgeItem.pickId         = geoNode->pickId();
-            edgeItem.materialIndex  = geoNode->materialIndex();
-            edgeItem.selected       = geoNode->selected();
+            edgeItem.geometry       = &node.cachedEdgeGeometry();
+            edgeItem.gpu            = node.ensureGpuEdgeGeometry(m_device);
+            edgeItem.worldTransform = node.worldTransform();
+            edgeItem.pickId         = node.pickId();
+            edgeItem.materialIndex  = node.materialIndex();
+            edgeItem.selected       = node.selected();
             edgeItem.isEdge         = true;
 
             m_queue.add(edgeItem);

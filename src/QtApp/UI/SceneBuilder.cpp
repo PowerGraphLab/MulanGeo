@@ -29,7 +29,7 @@ static void buildRecursive(BuildContext& ctx) {
         auto pickId = static_cast<uint32_t>(entity.id().value);
 
         if (entity.hasGeometry()) {
-            auto geoNode = std::make_unique<Eng::GeometryNode>(
+            auto geoNode = Eng::SceneNode::create(MulanGeo::NodeType::Geometry,
                 entity.name().empty() ? std::string{} : std::string(entity.name()),
                 pickId);
 

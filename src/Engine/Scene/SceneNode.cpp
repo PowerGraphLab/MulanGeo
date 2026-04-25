@@ -1,4 +1,5 @@
 #include "SceneNode.h"
+#include "../RHI/Buffer.h"
 
 namespace MulanGeo::Engine {
 
@@ -42,6 +43,53 @@ void SceneNode::setLocalTransform(const Mat4& t) {
     // 级联标记子节点需要重新计算世界变换
     for (auto& child : m_children)
         child->markDirty(DirtyFlag::Transform | DirtyFlag::Bounds);
+}
+
+// ============================================================
+// GPU 缓冲区 lazy 上传
+// ============================================================
+
+namespace {
+GpuGeometry uploadGeometry(RHIDevice* device, const RenderGeometry& geo) {
+    GpuGeometry g;
+    g.vertexStride = geo.vertexStride;
+    g.vertexCount  = geo.vertexCount;
+    g.indexCount   = geo.indexCount;
+
+    if (geo.vertexCount > 0 && !geo.vertexBytes.empty()) {
+        g.vertexBuffer = device->createBuffer(BufferDesc::vertex(
+            static_cast<uint32_t>(geo.vertexBytes.size()),
+            geo.vertexBytes.data(), "GeoVB"));
+    }
+
+    if (geo.indexCount > 0 && !geo.indexBytes.empty()) {
+        g.indexBuffer = device->createBuffer(BufferDesc::index(
+            static_cast<uint32_t>(geo.indexBytes.size()),
+            geo.indexBytes.data(), "GeoIB"));
+    }
+
+    g.uploaded = true;
+    return g;
+}
+} // anonymous namespace
+
+GpuGeometry* SceneNode::ensureGpuGeometry(RHIDevice* device) {
+    if (!m_gpuGeo.uploaded && hasRenderData()) {
+        m_gpuGeo = uploadGeometry(device, m_cachedGeo);
+    }
+    return m_gpuGeo.isValid() ? &m_gpuGeo : nullptr;
+}
+
+GpuGeometry* SceneNode::ensureGpuEdgeGeometry(RHIDevice* device) {
+    if (!m_gpuEdgeGeo.uploaded && hasEdgeData()) {
+        m_gpuEdgeGeo = uploadGeometry(device, m_cachedEdgeGeo);
+    }
+    return m_gpuEdgeGeo.isValid() ? &m_gpuEdgeGeo : nullptr;
+}
+
+void SceneNode::releaseGpuResources() {
+    m_gpuGeo = {};
+    m_gpuEdgeGeo = {};
 }
 
 } // namespace MulanGeo::Engine
