@@ -33,10 +33,6 @@ public:
 
     const GraphicsPipelineDesc& desc() const override { return m_desc; }
 
-    /// 对于 GL，finalize() 是 noop（GL 没有 renderpass 概念）
-    void finalize(SwapChain* swapchain) override { (void)swapchain; }
-    void finalize(RenderTarget* rt) override { (void)rt; }
-
     // --- OpenGL 特有接口 ---
 
     /// 获取链接的着色器程序

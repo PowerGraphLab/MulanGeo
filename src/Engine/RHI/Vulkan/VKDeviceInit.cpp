@@ -66,6 +66,12 @@ VKDevice::~VKDevice() {
     }
     m_renderFinishedSemaphores.clear();
 
+    // 销毁 RenderPass Cache
+    for (auto& [key, rp] : m_renderPassCache) {
+        if (m_device && rp) m_device.destroyRenderPass(rp);
+    }
+    m_renderPassCache.clear();
+
     shutdown();
 }
 

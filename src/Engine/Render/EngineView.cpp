@@ -140,11 +140,8 @@ void EngineView::resize(int width, int height) {
         uint32_t pixelBytes = static_cast<uint32_t>(width) * height * 4;
         m_stagingBuffer = dev->createBuffer(
             BufferDesc::staging(pixelBytes, "ReadbackStaging"));
-
-        m_sceneRenderer->finalizePipeline(m_renderTarget.get());
     } else {
         m_swapchain->resize(width, height);
-        m_sceneRenderer->finalizePipeline(m_swapchain.get());
     }
     m_camera.setViewport(width, height);
 }
@@ -237,13 +234,18 @@ bool EngineView::readbackPixels(std::vector<uint8_t>& pixels) {
 // ============================================================
 
 void EngineView::initSceneRenderer() {
-    m_sceneRenderer = std::make_unique<SceneRenderer>(m_device.get());
-    m_sceneRenderer->init();
+    TextureFormat colorFmt = m_renderTarget
+        ? m_renderTarget->colorFormat()
+        : m_swapchain->colorFormat();
+    TextureFormat depthFmt = m_renderTarget
+        ? m_renderTarget->depthFormat()
+        : m_swapchain->depthFormat();
+    bool hasDepth = m_renderTarget
+        ? m_renderTarget->hasDepth()
+        : m_swapchain->hasDepth();
 
-    if (m_renderTarget)
-        m_sceneRenderer->finalizePipeline(m_renderTarget.get());
-    else
-        m_sceneRenderer->finalizePipeline(m_swapchain.get());
+    m_sceneRenderer = std::make_unique<SceneRenderer>(m_device.get());
+    m_sceneRenderer->init(colorFmt, depthFmt, hasDepth);
 }
 
 // ============================================================

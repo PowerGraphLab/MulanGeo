@@ -171,7 +171,7 @@ void VKSwapChain::createSwapChain() {
 
     // 深度缓冲
     TextureDesc depthDesc = TextureDesc::depthStencil(extent.width, extent.height,
-                                                      TextureFormat::D24_UNorm_S8_UInt,
+                                                      m_desc.depthFormat,
                                                       "DepthBuffer");
     m_depthTexture = std::make_unique<VKTexture>(depthDesc, m_params.device, m_params.allocator);
 }
@@ -188,7 +188,7 @@ void VKSwapChain::createRenderPass() {
     colorAttachment.finalLayout    = vk::ImageLayout::ePresentSrcKHR;
 
     vk::AttachmentDescription depthAttachment;
-    depthAttachment.format         = vk::Format::eD24UnormS8Uint;
+    depthAttachment.format         = toVkFormat(m_desc.depthFormat);
     depthAttachment.samples        = vk::SampleCountFlagBits::e1;
     depthAttachment.loadOp         = vk::AttachmentLoadOp::eClear;
     depthAttachment.storeOp        = vk::AttachmentStoreOp::eDontCare;

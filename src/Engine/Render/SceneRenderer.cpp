@@ -31,11 +31,11 @@ SceneRenderer::SceneRenderer(RHIDevice* device)
 // 初始化
 // ============================================================
 
-bool SceneRenderer::init() {
+bool SceneRenderer::init(TextureFormat colorFmt, TextureFormat depthFmt, bool hasDepth) {
     loadShaders();
     if (!m_solidVs || !m_solidFs) return false;
 
-    createPSOs();
+    createPSOs(colorFmt, depthFmt, hasDepth);
     createUBOs();
 
     // 创建 Pass 管线
@@ -59,20 +59,6 @@ void SceneRenderer::cleanup() {
     m_solidPso.reset();
     m_solidFs.reset();
     m_solidVs.reset();
-}
-
-void SceneRenderer::finalizePipeline(SwapChain* swapchain) {
-    if (m_solidPso && swapchain)
-        m_solidPso->finalize(swapchain);
-    if (m_edgePso && swapchain)
-        m_edgePso->finalize(swapchain);
-}
-
-void SceneRenderer::finalizePipeline(RenderTarget* rt) {
-    if (m_solidPso && rt)
-        m_solidPso->finalize(rt);
-    if (m_edgePso && rt)
-        m_edgePso->finalize(rt);
 }
 
 // ============================================================
@@ -145,7 +131,7 @@ void SceneRenderer::loadShaders() {
 // PSO
 // ============================================================
 
-void SceneRenderer::createPSOs() {
+void SceneRenderer::createPSOs(TextureFormat colorFmt, TextureFormat depthFmt, bool hasDepth) {
     m_vertexLayout.begin()
         .add(VertexSemantic::Position,  VertexFormat::Float3)
         .add(VertexSemantic::Normal,    VertexFormat::Float3)
@@ -169,6 +155,13 @@ void SceneRenderer::createPSOs() {
         desc.descriptorBindings[1] = {.binding = 1, .count = 1, .stages = PB::kStageVertex | PB::kStageFragment};
         desc.descriptorBindings[2] = {.binding = 2, .count = 1, .type = DescriptorType::UniformBuffer, .stages = PB::kStageFragment};
         desc.descriptorBindingCount = 3;
+
+        // 渲染目标格式
+        desc.colorFormats[0]  = colorFmt;
+        desc.colorTargetCount = 1;
+        desc.depthStencilFormat = depthFmt;
+        desc.depthEnable        = hasDepth;
+
         return desc;
     };
 

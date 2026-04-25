@@ -6,8 +6,6 @@
  */
 #include "DX11PipelineState.h"
 #include "DX11Shader.h"
-#include "../SwapChain.h"
-#include "../RenderTarget.h"
 
 namespace MulanGeo::Engine
 {
@@ -17,18 +15,10 @@ DX11PipelineState::DX11PipelineState(const GraphicsPipelineDesc& desc,
     : m_desc(desc)
     , m_device(device)
 {
-}
-
-void DX11PipelineState::build()
-{
-    if (m_finalized) return;
-
     createInputLayout();
     createRasterizerState();
     createBlendState();
     createDepthStencilState();
-
-    m_finalized = true;
 }
 
 void DX11PipelineState::createInputLayout()
@@ -148,16 +138,6 @@ void DX11PipelineState::createDepthStencilState()
 
     HRESULT hr = m_device->CreateDepthStencilState(&dd, &m_depthStencil);
     DX11_CHECK(hr);
-}
-
-void DX11PipelineState::finalize(SwapChain*)
-{
-    build();
-}
-
-void DX11PipelineState::finalize(RenderTarget*)
-{
-    build();
 }
 
 } // namespace MulanGeo::Engine

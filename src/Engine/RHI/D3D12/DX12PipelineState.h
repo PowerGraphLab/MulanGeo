@@ -20,8 +20,6 @@ public:
     ~DX12PipelineState();
 
     const GraphicsPipelineDesc& desc() const override { return m_desc; }
-    void finalize(SwapChain* swapchain) override;
-    void finalize(RenderTarget* rt) override;
 
     ID3D12PipelineState* pipeline() const { return m_pipeline.Get(); }
     ID3D12RootSignature* rootSignature() const { return m_rootSignature.Get(); }
@@ -35,7 +33,6 @@ private:
     ID3D12Device*                m_device;
     ComPtr<ID3D12RootSignature>  m_rootSignature;
     ComPtr<ID3D12PipelineState>  m_pipeline;
-    bool                         m_finalized = false;
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputElements;
 };

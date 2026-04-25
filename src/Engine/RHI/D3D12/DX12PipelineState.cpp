@@ -6,8 +6,6 @@
  */
 #include "DX12PipelineState.h"
 #include "DX12Shader.h"
-#include "../SwapChain.h"
-#include "../RenderTarget.h"
 
 namespace MulanGeo::Engine {
 
@@ -17,6 +15,15 @@ DX12PipelineState::DX12PipelineState(const GraphicsPipelineDesc& desc,
     , m_device(device)
 {
     createRootSignature();
+
+    // 从 desc 读取 RT 格式，一步完成 PSO 创建
+    DXGI_FORMAT rtFormat = (m_desc.colorTargetCount > 0)
+        ? toDXGIFormat(m_desc.colorFormats[0])
+        : DXGI_FORMAT_UNKNOWN;
+    DXGI_FORMAT dsFormat = m_desc.depthEnable
+        ? toDSVFormat(m_desc.depthStencilFormat)
+        : DXGI_FORMAT_UNKNOWN;
+    build(rtFormat, dsFormat);
 }
 
 DX12PipelineState::~DX12PipelineState() = default;
@@ -126,8 +133,6 @@ D3D12_INPUT_LAYOUT_DESC DX12PipelineState::buildInputLayout() {
 }
 
 void DX12PipelineState::build(DXGI_FORMAT rtFormat, DXGI_FORMAT dsFormat) {
-    if (m_finalized) return;
-
     auto inputLayout = buildInputLayout();
 
     // Shader bytecode
@@ -197,20 +202,6 @@ void DX12PipelineState::build(DXGI_FORMAT rtFormat, DXGI_FORMAT dsFormat) {
     HRESULT hr = m_device->CreateGraphicsPipelineState(
         &psoDesc, IID_PPV_ARGS(&m_pipeline));
     DX12_CHECK(hr);
-    m_finalized = true;
-}
-
-void DX12PipelineState::finalize(SwapChain* swapchain) {
-    // 从 SwapChain 获取格式 — 需要后端特定的 RT 格式
-    DXGI_FORMAT rtFormat = toDXGIFormat(swapchain->desc().format);
-    DXGI_FORMAT dsFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    build(rtFormat, dsFormat);
-}
-
-void DX12PipelineState::finalize(RenderTarget* rt) {
-    DXGI_FORMAT rtFormat = toDXGIFormat(rt->desc().colorFormat);
-    DXGI_FORMAT dsFormat = toDSVFormat(rt->desc().depthFormat);
-    build(rtFormat, dsFormat);
 }
 
 } // namespace MulanGeo::Engine

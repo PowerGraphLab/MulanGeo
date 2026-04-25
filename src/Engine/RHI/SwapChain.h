@@ -25,6 +25,8 @@ struct SwapChainDesc {
     TextureFormat  format      = TextureFormat::RGBA8_UNorm;
     uint32_t       bufferCount = 2;       // 双缓冲 / 三缓冲
     bool           vsync       = true;
+    TextureFormat  depthFormat = TextureFormat::D24_UNorm_S8_UInt;
+    bool           hasDepth    = true;
 };
 
 // ============================================================
@@ -57,6 +59,11 @@ public:
     // 便捷查询
     uint32_t width()  const { return desc().width; }
     uint32_t height() const { return desc().height; }
+
+    // 格式查询（非虚，通过 desc() 委托）
+    TextureFormat colorFormat() const { return desc().format; }
+    TextureFormat depthFormat() const { return desc().depthFormat; }
+    bool          hasDepth()    const { return desc().hasDepth; }
 
 protected:
     SwapChain() = default;

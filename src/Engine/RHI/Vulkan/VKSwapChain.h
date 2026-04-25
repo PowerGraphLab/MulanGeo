@@ -17,6 +17,8 @@
 
 namespace MulanGeo::Engine {
 
+class VKDevice;
+
 class VKSwapChain : public SwapChain {
 public:
     struct InitParams {
@@ -29,6 +31,7 @@ public:
         vk::Queue          graphicsQueue;
         vk::Queue          presentQueue;
         vk::SurfaceKHR     surface;
+        VKDevice*          ownerDevice = nullptr;  // 用于访问 RenderPass Cache
     };
 
     VKSwapChain(const SwapChainDesc& desc, const InitParams& params,

@@ -1,10 +1,27 @@
 #include "VKPipelineState.h"
-#include "VKRenderTarget.h"
+#include "VKDevice.h"
 #include "VKShader.h"
 
-#include <unordered_map>
-
 namespace MulanGeo::Engine {
+
+VKPipelineState::VKPipelineState(const GraphicsPipelineDesc& desc,
+                                 vk::Device device, VKDevice* ownerDevice)
+    : m_desc(desc), m_device(device)
+{
+    createRootSignature();
+
+    // 从 desc 获取 RT 格式 → device RenderPass Cache → build
+    std::array<TextureFormat, GraphicsPipelineDesc::kMaxRenderTargets> colorFmts;
+    for (uint8_t i = 0; i < m_desc.colorTargetCount; ++i) {
+        colorFmts[i] = m_desc.colorFormats[i];
+    }
+    vk::RenderPass renderPass = ownerDevice->getOrCreateRenderPass(
+        {colorFmts.data(), m_desc.colorTargetCount},
+        m_desc.depthStencilFormat,
+        m_desc.depthEnable);
+
+    build(renderPass);
+}
 
 VKPipelineState::~VKPipelineState() {
     if (m_pipeline) m_device.destroyPipeline(m_pipeline);
@@ -12,36 +29,11 @@ VKPipelineState::~VKPipelineState() {
     if (m_descriptorSetLayout) m_device.destroyDescriptorSetLayout(m_descriptorSetLayout);
 }
 
-void VKPipelineState::finalize(SwapChain* swapchain) {
-    auto* vkSC = static_cast<VKSwapChain*>(swapchain);
-    build(vkSC->renderPass());
-}
-
-void VKPipelineState::finalize(RenderTarget* rt) {
-    auto* vkRT = static_cast<VKRenderTarget*>(rt);
-    build(vkRT->renderPass());
-}
-
-void VKPipelineState::build(vk::RenderPass renderPass, uint32_t subpass) {
-    // 重建：先销毁旧资源
-    if (m_pipeline) {
-        m_device.destroyPipeline(m_pipeline);
-        m_pipeline = nullptr;
-    }
-    if (m_layout) {
-        m_device.destroyPipelineLayout(m_layout);
-        m_layout = nullptr;
-    }
-    if (m_descriptorSetLayout) {
-        m_device.destroyDescriptorSetLayout(m_descriptorSetLayout);
-        m_descriptorSetLayout = nullptr;
-    }
-
+void VKPipelineState::createRootSignature() {
     // --- Descriptor Set Layout ---
     std::vector<vk::DescriptorSetLayoutBinding> bindings;
 
     if (m_desc.descriptorBindingCount > 0) {
-        // 从 pipeline desc 中读取 descriptor bindings
         for (uint8_t i = 0; i < m_desc.descriptorBindingCount; ++i) {
             const auto& b = m_desc.descriptorBindings[i];
             vk::DescriptorType vkType;
@@ -73,8 +65,9 @@ void VKPipelineState::build(vk::RenderPass renderPass, uint32_t subpass) {
     plCI.setLayoutCount = 1;
     plCI.pSetLayouts    = &m_descriptorSetLayout;
     m_layout = m_device.createPipelineLayout(plCI);
+}
 
-    // --- Shader Stages ---
+void VKPipelineState::build(vk::RenderPass renderPass) {
     std::vector<vk::PipelineShaderStageCreateInfo> stages;
     auto* vkVs = static_cast<VKShader*>(m_desc.vs);
     auto* vkPs = static_cast<VKShader*>(m_desc.ps);
@@ -166,7 +159,7 @@ void VKPipelineState::build(vk::RenderPass renderPass, uint32_t subpass) {
     gpCI.pDynamicState       = &dynamicCI;
     gpCI.layout              = m_layout;
     gpCI.renderPass          = renderPass;
-    gpCI.subpass             = subpass;
+    gpCI.subpass             = 0;
 
     m_pipeline = m_device.createGraphicsPipeline(nullptr, gpCI).value;
 }

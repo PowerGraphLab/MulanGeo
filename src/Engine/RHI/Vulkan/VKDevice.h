@@ -26,6 +26,9 @@
 #include <vector>
 #include <memory>
 #include <set>
+#include <array>
+#include <span>
+#include <unordered_map>
 
 namespace MulanGeo::Engine {
 
@@ -93,6 +96,12 @@ public:
     VKFrameContext&        currentFrameContext() { return *m_frameContexts[m_currentFrame]; }
     uint32_t               currentFrameIndex()   const { return m_currentFrame; }
 
+    // --- RenderPass Cache ---
+    vk::RenderPass getOrCreateRenderPass(
+        std::span<const TextureFormat> colorFormats,
+        TextureFormat depthFormat,
+        bool depthEnable);
+
 private:
     void init(const CreateInfo& ci);
     void shutdown();
@@ -133,6 +142,20 @@ private:
     // 按 acquired image index 索引，解决 present 异步持有信号量的问题
     std::vector<vk::Semaphore>  m_renderFinishedSemaphores;
     uint32_t                    m_acquiredImageIndex = 0;
+
+    // --- RenderPass Cache ---
+    struct RenderPassKey {
+        std::array<TextureFormat, 8> colorFormats{};
+        uint8_t                      colorCount  = 0;
+        TextureFormat                depthFormat = TextureFormat::Unknown;
+        bool                         depthEnable = false;
+
+        bool operator==(const RenderPassKey&) const = default;
+    };
+    struct RenderPassKeyHash {
+        size_t operator()(const RenderPassKey& k) const noexcept;
+    };
+    std::unordered_map<RenderPassKey, vk::RenderPass, RenderPassKeyHash> m_renderPassCache;
 };
 
 } // namespace MulanGeo::Engine

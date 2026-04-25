@@ -26,8 +26,6 @@ public:
     ~DX11PipelineState() = default;
 
     const GraphicsPipelineDesc& desc() const override { return m_desc; }
-    void finalize(SwapChain* swapchain) override;
-    void finalize(RenderTarget* rt) override;
 
     ID3D11InputLayout*      inputLayout()     const { return m_inputLayout.Get(); }
     ID3D11RasterizerState*  rasterizerState()  const { return m_rasterizer.Get(); }
@@ -37,7 +35,6 @@ public:
     uint32_t stride() const { return m_desc.vertexLayout.stride(); }
 
 private:
-    void build();
     void createInputLayout();
     void createRasterizerState();
     void createBlendState();
@@ -45,7 +42,6 @@ private:
 
     GraphicsPipelineDesc                m_desc;
     ID3D11Device*                       m_device;
-    bool                                m_finalized = false;
 
     ComPtr<ID3D11InputLayout>           m_inputLayout;
     ComPtr<ID3D11RasterizerState>       m_rasterizer;

@@ -9,18 +9,17 @@
 
 #include "../PipelineState.h"
 #include "VkConvert.h"
-#include "VKSwapChain.h"
 
 #include <unordered_map>
 
 namespace MulanGeo::Engine {
 
+class VKDevice;
+
 class VKPipelineState : public PipelineState {
 public:
-    VKPipelineState(const GraphicsPipelineDesc& desc, vk::Device device)
-        : m_desc(desc), m_device(device)
-    {}
-
+    VKPipelineState(const GraphicsPipelineDesc& desc,
+                    vk::Device device, VKDevice* ownerDevice);
     ~VKPipelineState();
 
     const GraphicsPipelineDesc& desc() const override { return m_desc; }
@@ -29,11 +28,9 @@ public:
     vk::PipelineLayout layout() const { return m_layout; }
     vk::DescriptorSetLayout descriptorSetLayout() const { return m_descriptorSetLayout; }
 
-    void finalize(SwapChain* swapchain) override;
-    void finalize(RenderTarget* rt) override;
-    void build(vk::RenderPass renderPass, uint32_t subpass = 0);
-
 private:
+    void build(vk::RenderPass renderPass);
+    void createRootSignature();
     vk::PipelineVertexInputStateCreateInfo buildVertexInputState();
 
     GraphicsPipelineDesc m_desc;

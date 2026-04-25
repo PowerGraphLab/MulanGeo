@@ -9,6 +9,7 @@
 
 #include "RenderState.h"
 #include "Shader.h"
+#include "Texture.h"
 #include "VertexLayout.h"
 
 #include <cstdint>
@@ -77,31 +78,27 @@ struct GraphicsPipelineDesc {
     // 混合
     BlendDesc blend;
 
-    // 渲染目标格式（用于创建时验证）
+    // 渲染目标格式 — 创建时必须提供
     static constexpr uint8_t kMaxRenderTargets = 8;
-    // TextureFormat colorFormats[kMaxRenderTargets];  // 后续需要时再加
+    TextureFormat  colorFormats[kMaxRenderTargets] = {};
+    uint8_t        colorTargetCount   = 0;
+    TextureFormat  depthStencilFormat = TextureFormat::Unknown;
+    bool           depthEnable        = false;
+    uint32_t       sampleCount        = 1;   // MSAA: 1=无, 2/4/8=多采样
 };
+
 // ============================================================
 // 管线状态基类
 //
 // 涵盖一次绘制所需的全部粗粒度状态。
-// 由 Device 创建，通过 CommandList::setPipelineState() 绑定。
+// 由 Device::createPipelineState() 一步创建完成，无需 finalize。
 // ============================================================
-
-class SwapChain;
-class RenderTarget;
 
 class PipelineState {
 public:
     virtual ~PipelineState() = default;
 
     virtual const GraphicsPipelineDesc& desc() const = 0;
-
-    /// 在 SwapChain 就绪后完成管线构建（VK 需要 renderPass，GL 可 noop）
-    virtual void finalize(SwapChain* swapchain) = 0;
-
-    /// 在 RenderTarget 就绪后完成管线构建（离屏渲染）
-    virtual void finalize(RenderTarget* rt) { (void)rt; }
 
     // 便捷查询
     PrimitiveTopology topology() const { return desc().topology; }

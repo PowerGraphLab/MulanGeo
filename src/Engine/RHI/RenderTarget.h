@@ -66,6 +66,11 @@ public:
     uint32_t width()  const { return desc().width; }
     uint32_t height() const { return desc().height; }
 
+    // 格式查询（非虚，通过 desc() 委托）
+    TextureFormat colorFormat() const { return desc().colorFormat; }
+    TextureFormat depthFormat() const { return desc().depthFormat; }
+    bool          hasDepth()    const { return desc().hasDepth; }
+
 protected:
     RenderTarget() = default;
     RenderTarget(const RenderTarget&) = delete;

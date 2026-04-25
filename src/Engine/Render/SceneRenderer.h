@@ -77,11 +77,8 @@ public:
 
     friend class ForwardPass;
 
-    bool init();
+    bool init(TextureFormat colorFmt, TextureFormat depthFmt, bool hasDepth);
     void cleanup();
-
-    void finalizePipeline(SwapChain* swapchain);
-    void finalizePipeline(RenderTarget* rt);
 
     void setRenderMode(RenderMode mode) { m_renderMode = mode; }
     RenderMode renderMode() const { return m_renderMode; }
@@ -125,7 +122,7 @@ private:
     // --- 内部方法 ---
 
     void loadShaders();
-    void createPSOs();
+    void createPSOs(TextureFormat colorFmt, TextureFormat depthFmt, bool hasDepth);
     void createUBOs();
     void updateSceneUBO(const Camera& camera);
     void drawItem(const RenderItem& item, CommandList* cmdList,

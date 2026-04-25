@@ -31,7 +31,7 @@ ResourcePtr<Shader> VKDevice::createShader(const ShaderDesc& desc) {
 }
 
 ResourcePtr<PipelineState> VKDevice::createPipelineState(const GraphicsPipelineDesc& desc) {
-    return ResourcePtr<PipelineState>(new VKPipelineState(desc, m_device), DeviceResourceDeleter{shared_from_this()});
+    return ResourcePtr<PipelineState>(new VKPipelineState(desc, m_device, this), DeviceResourceDeleter{shared_from_this()});
 }
 
 ResourcePtr<CommandList> VKDevice::createCommandList() {
@@ -53,6 +53,7 @@ ResourcePtr<SwapChain> VKDevice::createSwapChain(const SwapChainDesc& desc) {
     params.graphicsQueue       = m_graphicsQueue;
     params.presentQueue        = m_presentQueue;
     params.surface             = m_surface;
+    params.ownerDevice         = this;
 
     auto* swapchain = new VKSwapChain(desc, params, m_renderConfig);
     m_swapChains.push_back(swapchain);
@@ -138,6 +139,112 @@ void VKDevice::executeCommandLists(CommandList** cmdLists, uint32_t count,
 
 void VKDevice::waitIdle() {
     m_device.waitIdle();
+}
+
+// ============================================================
+// RenderPass Cache
+// ============================================================
+
+size_t VKDevice::RenderPassKeyHash::operator()(const RenderPassKey& k) const noexcept {
+    size_t h = 0;
+    // FNV-1a style hash
+    auto combine = [&](auto val) {
+        h ^= std::hash<decltype(val)>{}(val) + 0x9e3779b9 + (h << 6) + (h >> 2);
+    };
+    for (uint8_t i = 0; i < k.colorCount; ++i) {
+        combine(static_cast<uint8_t>(k.colorFormats[i]));
+    }
+    combine(k.colorCount);
+    combine(static_cast<uint8_t>(k.depthFormat));
+    combine(k.depthEnable);
+    return h;
+}
+
+vk::RenderPass VKDevice::getOrCreateRenderPass(
+    std::span<const TextureFormat> colorFormats,
+    TextureFormat depthFormat,
+    bool depthEnable)
+{
+    RenderPassKey key;
+    key.colorCount = static_cast<uint8_t>(std::min(colorFormats.size(), key.colorFormats.size()));
+    for (uint8_t i = 0; i < key.colorCount; ++i) {
+        key.colorFormats[i] = colorFormats[i];
+    }
+    key.depthFormat = depthFormat;
+    key.depthEnable = depthEnable;
+
+    auto it = m_renderPassCache.find(key);
+    if (it != m_renderPassCache.end()) {
+        return it->second;
+    }
+
+    // --- 创建 vk::RenderPass ---
+    std::vector<vk::AttachmentDescription> attachments;
+
+    // Color attachments
+    std::vector<vk::AttachmentReference> colorRefs;
+    for (uint8_t i = 0; i < key.colorCount; ++i) {
+        vk::AttachmentDescription colorAtt;
+        colorAtt.format         = toVkFormat(key.colorFormats[i]);
+        colorAtt.samples        = vk::SampleCountFlagBits::e1;
+        colorAtt.loadOp         = vk::AttachmentLoadOp::eClear;
+        colorAtt.storeOp        = vk::AttachmentStoreOp::eStore;
+        colorAtt.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+        colorAtt.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+        colorAtt.initialLayout  = vk::ImageLayout::eUndefined;
+        colorAtt.finalLayout    = vk::ImageLayout::eColorAttachmentOptimal;
+        attachments.push_back(colorAtt);
+
+        colorRefs.push_back({i, vk::ImageLayout::eColorAttachmentOptimal});
+    }
+
+    // Depth attachment
+    vk::AttachmentReference depthRef;
+    if (key.depthEnable) {
+        vk::AttachmentDescription depthAtt;
+        depthAtt.format         = toVkFormat(key.depthFormat);
+        depthAtt.samples        = vk::SampleCountFlagBits::e1;
+        depthAtt.loadOp         = vk::AttachmentLoadOp::eClear;
+        depthAtt.storeOp        = vk::AttachmentStoreOp::eDontCare;
+        depthAtt.stencilLoadOp  = vk::AttachmentLoadOp::eClear;
+        depthAtt.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+        depthAtt.initialLayout  = vk::ImageLayout::eUndefined;
+        depthAtt.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+        attachments.push_back(depthAtt);
+
+        depthRef.attachment = key.colorCount;
+        depthRef.layout     = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+    }
+
+    vk::SubpassDescription subpass;
+    subpass.pipelineBindPoint       = vk::PipelineBindPoint::eGraphics;
+    subpass.colorAttachmentCount    = static_cast<uint32_t>(colorRefs.size());
+    subpass.pColorAttachments       = colorRefs.data();
+    subpass.pDepthStencilAttachment = key.depthEnable ? &depthRef : nullptr;
+
+    // Subpass dependency: 外部 → subpass (确保 image layout transition 正确)
+    vk::SubpassDependency dependency;
+    dependency.srcSubpass      = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass      = 0;
+    dependency.srcStageMask    = vk::PipelineStageFlagBits::eColorAttachmentOutput |
+                                 vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstStageMask    = vk::PipelineStageFlagBits::eColorAttachmentOutput |
+                                 vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.srcAccessMask   = vk::AccessFlags{};
+    dependency.dstAccessMask   = vk::AccessFlagBits::eColorAttachmentWrite |
+                                 vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+
+    vk::RenderPassCreateInfo rpCI;
+    rpCI.attachmentCount = static_cast<uint32_t>(attachments.size());
+    rpCI.pAttachments    = attachments.data();
+    rpCI.subpassCount    = 1;
+    rpCI.pSubpasses      = &subpass;
+    rpCI.dependencyCount = 1;
+    rpCI.pDependencies   = &dependency;
+
+    vk::RenderPass renderPass = m_device.createRenderPass(rpCI);
+    m_renderPassCache.emplace(key, renderPass);
+    return renderPass;
 }
 
 // ============================================================
