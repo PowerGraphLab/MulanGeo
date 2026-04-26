@@ -1,9 +1,10 @@
 # Core - 基础设施层（动态库）
 #
-# 图片加载/保存、文件 IO、日志等通用功能。
-# 仅依赖 stb，所有模块均可引入。
+# 图片加载/保存、日志、文件 IO 等通用功能。
+# 所有模块均可引入。
 add_library(Core SHARED
     Image/Image.cpp
+    Log/Log.cpp
 )
 
 # 构建时将头文件复制到 build/include/MulanGeo/Core/...
@@ -30,6 +31,10 @@ if(STB_INCLUDE_DIRS)
 else()
     message(WARNING "stb headers not found — Image.cpp will fail to compile")
 endif()
+
+# --- spdlog (日志) ---
+find_package(spdlog CONFIG REQUIRED)
+target_link_libraries(Core PRIVATE spdlog::spdlog)
 
 # CMake 对 SHARED 库自动定义 <name>_EXPORTS 宏（如 Core_EXPORTS）
 # 我们用 Core_EXPORTS 来触发 dllexport
