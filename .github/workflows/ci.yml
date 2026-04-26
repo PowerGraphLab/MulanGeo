@@ -92,37 +92,12 @@ jobs:
           "OCCT_ROOT=$occtRoot" | Out-File -Append $env:GITHUB_ENV
           "OCCT_3RDPARTY_DIR=$thirdPartyDir" | Out-File -Append $env:GITHUB_ENV
 
-      # ── Vulkan SDK (需要 dxc 编译 shader) ──
-      - name: Cache Vulkan SDK
-        id: cache-vulkan
-        uses: actions/cache@v4
-        with:
-          path: C:\VulkanSDK
-          key: vulkan-1.4.335-v1
-
+# ── Vulkan SDK ──
       - name: Install Vulkan SDK
-        if: steps.cache-vulkan.outputs.cache-hit != 'true'
-        shell: pwsh
-        run: |
-          $url = "https://sdk.lunarg.com/sdk/download/1.4.335.0/windows/vulkansdk-windows-X64-1.4.335.0.exe"
-          $installer = "$env:RUNNER_TEMP\vulkan-installer.exe"
-          Write-Host "Downloading Vulkan SDK 1.4.335.0..."
-          Invoke-WebRequest -Uri $url -OutFile $installer
-          Write-Host "Installing Vulkan SDK..."
-          Start-Process -FilePath $installer -ArgumentList "/S" -Wait -NoNewWindow
-
-      - name: Set Vulkan SDK environment
-        shell: pwsh
-        run: |
-          $vulkanDir = Get-ChildItem "C:\VulkanSDK" -Directory | Sort-Object Name -Descending | Select-Object -First 1
-          if ($vulkanDir) {
-            "VULKAN_SDK=$($vulkanDir.FullName)" | Out-File -Append $env:GITHUB_ENV
-            "$($vulkanDir.FullName)\Bin" | Out-File -Append $env:GITHUB_PATH
-            Write-Host "VULKAN_SDK=$($vulkanDir.FullName)"
-          } else {
-            Write-Error "Vulkan SDK directory not found in C:\VulkanSDK"
-            exit 1
-          }
+        uses: humbletim/install-vulkan-sdk@v1.2.0
+        with:
+          version: 1.4.335.0
+          cache: true
 
       # ── vcpkg ──
       - name: Setup vcpkg
