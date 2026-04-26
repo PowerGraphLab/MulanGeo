@@ -94,7 +94,7 @@ jobs:
           "OCCT_ROOT=$occtRoot" | Out-File -Append $env:GITHUB_ENV
           "OCCT_3RDPARTY_DIR=$thirdPartyDir" | Out-File -Append $env:GITHUB_ENV
 
-      # ── Vulkan SDK ──
+      # ── Vulkan SDK1 ──
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
