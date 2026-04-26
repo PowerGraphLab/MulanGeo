@@ -23,7 +23,9 @@ DX12Buffer::DX12Buffer(const BufferDesc& desc, ID3D12Device* device)
 
     resDesc.Dimension          = D3D12_RESOURCE_DIMENSION_BUFFER;
     resDesc.Alignment          = 0;
-    resDesc.Width              = desc.size;
+    resDesc.Width              = (desc.bindFlags & BufferBindFlags::UniformBuffer)
+        ? ((static_cast<uint64_t>(desc.size) + 255ull) & ~255ull)
+        : desc.size;
     resDesc.Height             = 1;
     resDesc.DepthOrArraySize   = 1;
     resDesc.MipLevels          = 1;
@@ -39,7 +41,7 @@ DX12Buffer::DX12Buffer(const BufferDesc& desc, ID3D12Device* device)
         heapProps.Type                 = D3D12_HEAP_TYPE_DEFAULT;
         heapProps.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
         heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        initialState = D3D12_RESOURCE_STATE_COPY_DEST;
+        initialState = D3D12_RESOURCE_STATE_COMMON;
         break;
 
     case BufferUsage::Dynamic:

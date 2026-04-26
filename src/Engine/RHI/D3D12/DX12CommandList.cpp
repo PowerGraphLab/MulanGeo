@@ -52,7 +52,8 @@ void DX12CommandList::begin() {
 }
 
 void DX12CommandList::end() {
-    m_cmdList->Close();
+    HRESULT hr = m_cmdList->Close();
+    DX12_CHECK(hr);
 }
 
 void DX12CommandList::setPipelineState(PipelineState* pso) {
@@ -216,13 +217,18 @@ void DX12CommandList::beginRenderPass(const RenderPassBeginInfo& info) {
         auto* tex = static_cast<DX12Texture*>(info.colorAttachments[i].target);
         if (!tex) continue;
 
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Transition.pResource   = tex->resource();
-        barrier.Transition.StateBefore = tex->state();
-        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        cl->ResourceBarrier(1, &barrier);
-        tex->setState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+        D3D12_RESOURCE_STATES before = tex->state();
+        D3D12_RESOURCE_STATES after = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        if (tex->resource() && before != after) {
+            D3D12_RESOURCE_BARRIER barrier = {};
+            barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Transition.pResource   = tex->resource();
+            barrier.Transition.StateBefore = before;
+            barrier.Transition.StateAfter  = after;
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            cl->ResourceBarrier(1, &barrier);
+            tex->setState(after);
+        }
 
         // Clear
         if (info.colorAttachments[i].loadAction == LoadAction::Clear) {
@@ -236,13 +242,18 @@ void DX12CommandList::beginRenderPass(const RenderPassBeginInfo& info) {
     if (info.depthAttachment.target) {
         auto* depthTex = static_cast<DX12Texture*>(info.depthAttachment.target);
 
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Transition.pResource   = depthTex->resource();
-        barrier.Transition.StateBefore = depthTex->state();
-        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-        cl->ResourceBarrier(1, &barrier);
-        depthTex->setState(D3D12_RESOURCE_STATE_DEPTH_WRITE);
+        D3D12_RESOURCE_STATES before = depthTex->state();
+        D3D12_RESOURCE_STATES after = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+        if (depthTex->resource() && before != after) {
+            D3D12_RESOURCE_BARRIER barrier = {};
+            barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Transition.pResource   = depthTex->resource();
+            barrier.Transition.StateBefore = before;
+            barrier.Transition.StateAfter  = after;
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            cl->ResourceBarrier(1, &barrier);
+            depthTex->setState(after);
+        }
 
         if (info.depthAttachment.loadAction == LoadAction::Clear) {
             cl->ClearDepthStencilView(depthTex->dsv(),
@@ -272,13 +283,18 @@ void DX12CommandList::endRenderPass() {
         ? D3D12_RESOURCE_STATE_PRESENT
         : D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Transition.pResource   = m_rpColorTex->resource();
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    barrier.Transition.StateAfter  = targetState;
-    cl->ResourceBarrier(1, &barrier);
-    m_rpColorTex->setState(targetState);
+    D3D12_RESOURCE_STATES before = m_rpColorTex->state();
+    D3D12_RESOURCE_STATES after = targetState;
+    if (m_rpColorTex->resource() && before != after) {
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource   = m_rpColorTex->resource();
+        barrier.Transition.StateBefore = before;
+        barrier.Transition.StateAfter  = after;
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        cl->ResourceBarrier(1, &barrier);
+        m_rpColorTex->setState(after);
+    }
 
     m_rpColorTex = nullptr;
 }

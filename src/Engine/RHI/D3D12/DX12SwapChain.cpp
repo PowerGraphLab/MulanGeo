@@ -35,14 +35,16 @@ DX12SwapChain::DX12SwapChain(const SwapChainDesc& desc, ID3D12Device* device,
     scDesc.Flags              = desc.vsync ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
     HWND hwnd = reinterpret_cast<HWND>(window.win32.hWnd);
+    DX12_LOG("[DX12] CreateSwapChainForHwnd hwnd=%p size=%ux%u buffers=%u format=%u vsync=%d\n",
+             hwnd, desc.width, desc.height, desc.bufferCount,
+             static_cast<unsigned>(scDesc.Format), desc.vsync ? 1 : 0);
     ComPtr<IDXGISwapChain1> swapChain1;
     HRESULT hr = factory->CreateSwapChainForHwnd(
         queue, hwnd, &scDesc, nullptr, nullptr, &swapChain1);
     DX12_CHECK(hr);
-
     hr = swapChain1.As(&m_swapChain);
     DX12_CHECK(hr);
-
+    DX12_LOG("[DX12] SwapChain created successfully\n");
     createRTVHeap();
     createBackBuffers();
 }
@@ -68,15 +70,15 @@ void DX12SwapChain::createBackBuffers() {
     for (uint32_t i = 0; i < m_desc.bufferCount; ++i) {
         HRESULT hr = m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_backBuffers[i]));
         DX12_CHECK(hr);
-
+        DX12_LOG("[DX12] BackBuffer[%u] resource=%p\n", i, m_backBuffers[i].Get());
         auto rtvDesc = m_rtvHeap->allocate();
         m_device->CreateRenderTargetView(m_backBuffers[i].Get(), nullptr, rtvDesc.cpu);
 
-        // 创建 DX12Texture 包装
+        // 包装 swapchain backbuffer，不重新创建资源
         TextureDesc texDesc = TextureDesc::renderTarget(m_desc.width, m_desc.height, m_desc.format);
-        m_backBufferTextures[i] = std::make_unique<DX12Texture>(texDesc, m_device);
+        m_backBufferTextures[i] = std::make_unique<DX12Texture>(
+            texDesc, m_backBuffers[i].Get(), D3D12_RESOURCE_STATE_PRESENT);
         m_backBufferTextures[i]->setRTV(rtvDesc.cpu);
-        m_backBufferTextures[i]->setState(D3D12_RESOURCE_STATE_PRESENT);
     }
 
     // Depth stencil
@@ -108,7 +110,18 @@ Texture* DX12SwapChain::currentBackBuffer() {
 void DX12SwapChain::present() {
     UINT syncInterval = m_desc.vsync ? 1 : 0;
     UINT flags = m_desc.vsync ? 0 : DXGI_PRESENT_ALLOW_TEARING;
-    m_swapChain->Present(syncInterval, flags);
+    HRESULT hr = m_swapChain->Present(syncInterval, flags);
+    if (FAILED(hr)) {
+        logDeviceRemovedReason(hr);
+    }
+    DX12_CHECK(hr);
+}
+
+void DX12SwapChain::logDeviceRemovedReason(HRESULT presentResult) const {
+    HRESULT reason = m_device ? m_device->GetDeviceRemovedReason() : presentResult;
+    DX12_LOG("[DX12] Present failed hr=0x%08X deviceRemovedReason=0x%08X\n",
+             static_cast<unsigned>(presentResult), static_cast<unsigned>(reason));
+    DX12_CHECK(reason);
 }
 
 void DX12SwapChain::resize(uint32_t width, uint32_t height) {

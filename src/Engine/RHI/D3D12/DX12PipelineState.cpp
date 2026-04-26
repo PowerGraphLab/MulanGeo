@@ -6,6 +6,29 @@
  */
 #include "DX12PipelineState.h"
 #include "DX12Shader.h"
+#include <string>
+
+namespace {
+D3D12_PRIMITIVE_TOPOLOGY_TYPE toDX12TopologyType(MulanGeo::Engine::PrimitiveTopology topology) {
+    using MulanGeo::Engine::PrimitiveTopology;
+    switch (topology) {
+    case PrimitiveTopology::PointList:
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+    case PrimitiveTopology::LineList:
+    case PrimitiveTopology::LineStrip:
+    case PrimitiveTopology::LineListAdj:
+    case PrimitiveTopology::LineStripAdj:
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+    case PrimitiveTopology::TriangleList:
+    case PrimitiveTopology::TriangleStrip:
+    case PrimitiveTopology::TriangleListAdj:
+    case PrimitiveTopology::TriangleStripAdj:
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    default:
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+    }
+}
+} // namespace
 
 namespace MulanGeo::Engine {
 
@@ -189,7 +212,7 @@ void DX12PipelineState::build(DXGI_FORMAT rtFormat, DXGI_FORMAT dsFormat) {
     psoDesc.PS                    = psBytecode;
     psoDesc.InputLayout           = inputLayout;
     psoDesc.IBStripCutValue       = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    psoDesc.PrimitiveTopologyType = toDX12TopologyType(m_desc.topology);
     psoDesc.NumRenderTargets      = 1;
     psoDesc.RTVFormats[0]         = rtFormat;
     psoDesc.DSVFormat             = dsFormat;
@@ -201,6 +224,13 @@ void DX12PipelineState::build(DXGI_FORMAT rtFormat, DXGI_FORMAT dsFormat) {
 
     HRESULT hr = m_device->CreateGraphicsPipelineState(
         &psoDesc, IID_PPV_ARGS(&m_pipeline));
+    if (FAILED(hr)) {
+        DX12_LOG("[DX12] CreateGraphicsPipelineState failed name=%s topology=%d topoType=%u rt=%u ds=%u vsBytes=%zu psBytes=%zu\n",
+                 std::string(m_desc.name).c_str(), static_cast<int>(m_desc.topology),
+                 static_cast<unsigned>(psoDesc.PrimitiveTopologyType),
+                 static_cast<unsigned>(rtFormat), static_cast<unsigned>(dsFormat),
+                 vsBytecode.BytecodeLength, psBytecode.BytecodeLength);
+    }
     DX12_CHECK(hr);
 }
 

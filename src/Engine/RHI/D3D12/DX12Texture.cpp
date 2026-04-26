@@ -67,6 +67,14 @@ DX12Texture::DX12Texture(const TextureDesc& desc, ID3D12Device* device,
     DX12_CHECK(hr);
 }
 
+DX12Texture::DX12Texture(const TextureDesc& desc, ID3D12Resource* existingResource,
+                         D3D12_RESOURCE_STATES initialState)
+    : m_desc(desc)
+    , m_resource(existingResource)
+    , m_state(initialState)
+{
+}
+
 DX12Texture::~DX12Texture() = default;
 
 } // namespace MulanGeo::Engine

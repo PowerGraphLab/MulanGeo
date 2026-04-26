@@ -34,7 +34,10 @@ void DX12Device::init(const DeviceCreateInfo& ci) {
     m_window       = ci.window;
     m_renderConfig = ci.renderConfig;
     m_frameCount   = ci.renderConfig.bufferCount > 0 ? ci.renderConfig.bufferCount : 2;
-
+    DX12_LOG("[DX12] Init windowType=%d hwnd=%p frameCount=%u validation=%d\n",
+             static_cast<int>(ci.window.type),
+             reinterpret_cast<void*>(ci.window.win32.hWnd),
+             m_frameCount, ci.enableValidation ? 1 : 0);
     if (ci.enableValidation) enableDebugLayer();
     createFactory();
     findAdapter();
@@ -240,7 +243,8 @@ void DX12Device::submitAndPresent(SwapChain* swapchain) {
     // Signal fence
     auto fenceVal = frame->fenceValue() + 1;
     frame->setFenceValue(fenceVal);
-    m_commandQueue->Signal(frame->fence()->fence(), fenceVal);
+    HRESULT hr = m_commandQueue->Signal(frame->fence()->fence(), fenceVal);
+    DX12_CHECK(hr);
 }
 
 void DX12Device::submitOffscreen() {

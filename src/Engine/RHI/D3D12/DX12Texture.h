@@ -15,6 +15,8 @@ class DX12Texture final : public Texture {
 public:
     DX12Texture(const TextureDesc& desc, ID3D12Device* device,
                 D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON);
+    DX12Texture(const TextureDesc& desc, ID3D12Resource* existingResource,
+                D3D12_RESOURCE_STATES initialState);
     ~DX12Texture();
 
     const TextureDesc& desc() const override { return m_desc; }

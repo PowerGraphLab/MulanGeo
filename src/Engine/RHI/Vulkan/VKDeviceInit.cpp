@@ -50,7 +50,7 @@ VKDevice::VKDevice(const DeviceCreateInfo& ci) {
 
 VKDevice::~VKDevice() {
     m_device.waitIdle();
-
+    clearFramebufferCache();
     m_frameCmdList.reset();
     m_frameContexts.clear();
     m_uploadContext.reset();

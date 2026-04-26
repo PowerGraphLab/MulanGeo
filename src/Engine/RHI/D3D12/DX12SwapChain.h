@@ -41,6 +41,7 @@ private:
     void createRTVHeap();
     void createBackBuffers();
     void releaseBackBuffers();
+    void logDeviceRemovedReason(HRESULT presentResult) const;
 
     SwapChainDesc                       m_desc;
     ID3D12Device*                       m_device;
