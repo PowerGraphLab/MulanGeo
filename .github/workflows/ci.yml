@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       # ── Qt6 ──
       - name: Install Qt6
@@ -92,6 +94,12 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgGitCommitId: "296b89248ad13be09e9324488eb4f74dd322d26c"
+
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        with:
+          path: build/vcpkg_installed
+          key: vcpkg-installed-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
 
       # ── Configure & Build ──
       - name: Configure CMake
