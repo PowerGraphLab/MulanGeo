@@ -1,0 +1,12 @@
+CompileFlags:
+  CompilationDatabase: build/
+
+Completion:
+  AllScopes: true
+  DetailedLabel: true
+
+Diagnostics:
+  UnusedIncludes: None
+  ClangTidy:
+    Remove:
+      - '*'

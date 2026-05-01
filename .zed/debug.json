@@ -1,0 +1,18 @@
+[
+  {
+    "label": "Debug MulanGeo",
+    "adapter": "CodeLLDB",
+    "request": "launch",
+    "program": "$ZED_WORKTREE_ROOT/build/bin/Debug/MulanGeo.exe",
+    "cwd": "$ZED_WORKTREE_ROOT/build/bin",
+    "build": "CMake: Build (Debug)",
+  },
+  {
+    "label": "Debug MulanGeo (RelWithDebInfo)",
+    "adapter": "CodeLLDB",
+    "request": "launch",
+    "program": "$ZED_WORKTREE_ROOT/build/bin/RelWithDebInfo/MulanGeo.exe",
+    "cwd": "$ZED_WORKTREE_ROOT/build/bin",
+    "build": "CMake: Build (RelWithDebInfo)",
+  },
+]
